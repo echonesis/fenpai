@@ -37,3 +37,5 @@ services:
         generateValue: true
       - key: CORS_ORIGINS
         sync: false   # 部署後在 Render dashboard 填入 Vercel frontend URL
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod

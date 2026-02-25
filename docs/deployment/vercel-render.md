@@ -93,7 +93,7 @@ Render 會讀取 repo 根目錄的 `render.yaml` 自動建立所有服務。
 | `DB_NAME` | 自動（fromDatabase） | 資料庫名稱 |
 | `DB_USER` | 自動（fromDatabase） | 資料庫使用者 |
 | `DB_PASSWORD` | 自動（fromDatabase） | 資料庫密碼 |
-| `JWT_SECRET` | 自動（generateValue） | JWT 簽章密鑰 |
+| `JWT_SECRET` | 自動（`generateValue: true`）| JWT 簽章密鑰，Render 自動生成，無需手動填寫 |
 | `CORS_ORIGINS` | **手動填入** | Vercel 前端 URL |
 
 ### Vercel（前端）

@@ -91,14 +91,32 @@ cd frontend && npm run dev
 
 ## 環境變數
 
-預設值已寫在 `docker-compose.yml`，本地測試直接使用即可。
+`docker-compose.yml` 使用 `SPRING_PROFILES_ACTIVE=prod`，**所有敏感變數沒有預設值，缺少時會直接啟動失敗**。
 
-正式部署到 VPS 時，建議建立 `.env` 檔覆蓋預設值（`.env` 已加入 `.gitignore`）：
+啟動前必須在專案根目錄建立 `.env` 檔（已加入 `.gitignore`，不會被 commit）：
 
 ```bash
-# .env（不要 commit）
-DB_PASSWORD=your-strong-password
-JWT_SECRET=your-long-random-secret-at-least-32-chars
+# 複製範本
+cp .env.example .env
+```
+
+`.env` 必填欄位：
+
+| 變數 | 說明 | 生成方式 |
+|------|------|----------|
+| `JWT_SECRET` | JWT 簽章密鑰 | `openssl rand -hex 64` |
+
+選填欄位（有預設值）：
+
+| 變數 | 預設值 | 說明 |
+|------|--------|------|
+| `CORS_ORIGINS` | `http://localhost:5173` | 允許的前端 origin |
+
+VPS 部署時 `CORS_ORIGINS` 須改為正式網域：
+
+```bash
+# .env
+JWT_SECRET=<openssl rand -hex 64 的輸出>
 CORS_ORIGINS=https://your-domain.com
 ```
 

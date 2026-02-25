@@ -45,7 +45,7 @@ Zeabur Project: fenpai
    | `DB_NAME` | 同上 → `database` |
    | `DB_USER` | 同上 → `user` |
    | `DB_PASSWORD` | 同上 → `password` |
-   | `JWT_SECRET` | 填入隨機長字串（至少 32 字元） |
+   | `JWT_SECRET` | 本地執行 `openssl rand -hex 64` 後貼入 |
    | `CORS_ORIGINS` | 待前端部署完成後填入 Zeabur frontend URL |
 
 5. **Deploy**，等待建置完成

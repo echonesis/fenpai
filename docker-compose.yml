@@ -28,13 +28,14 @@ services:
     ports:
       - "8080:8080"
     environment:
+      SPRING_PROFILES_ACTIVE: prod
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: fenpai
       DB_USER: fenpai
       DB_PASSWORD: fenpai
-      JWT_SECRET: change-me-to-a-long-random-secret-in-production-at-least-256-bits
-      CORS_ORIGINS: http://localhost:5173
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
     depends_on:
       postgres:
         condition: service_healthy

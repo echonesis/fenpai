@@ -40,13 +40,15 @@ fenpai/
 │   │   ├── service/             # 業務邏輯
 │   │   ├── repository/          # 資料存取層
 │   │   ├── model/               # JPA 實體
-│   │   └── config/              # 設定（Security、WebSocket）
+│   │   └── config/              # 設定（Security、WebSocket、AppProperties）
 │   ├── src/main/resources/
-│   │   ├── application.properties
+│   │   ├── application.properties       # 本機開發預設值
+│   │   ├── application-prod.properties  # 正式環境（無預設值，缺變數即啟動失敗）
 │   │   └── db/migration/
 │   │       └── V1__init_schema.sql
 │   └── Dockerfile
 ├── docker-compose.yml
+├── .env.example                 # 環境變數範本（複製為 .env 填入後使用）
 └── README.md
 ```
 
@@ -65,7 +67,12 @@ fenpai/
 ### 使用 Docker Compose 啟動（推薦）
 
 ```bash
-# 建立並啟動所有服務
+# 1. 複製環境變數範本並填入 JWT_SECRET
+cp .env.example .env
+# 編輯 .env，執行下列指令取得 JWT_SECRET 的值：
+#   openssl rand -hex 64
+
+# 2. 建立並啟動所有服務
 docker compose up --build
 
 # 背景執行
@@ -169,17 +176,25 @@ WebSocket 端點：`ws://localhost:8080/ws`（使用 SockJS + STOMP）
 
 ## 環境變數
 
-### 後端（`application.properties` / Docker）
+專案使用兩個 profile：
 
-| 變數 | 預設值 | 說明 |
-|------|--------|------|
+- **預設 profile**（本機 `mvn spring-boot:run`）：`application.properties`，敏感欄位有安全預設值供開發使用
+- **prod profile**（Docker Compose / Render / Zeabur）：`application-prod.properties`，**所有敏感變數無預設值，缺少時直接啟動失敗**
+
+### 後端
+
+| 變數 | 本機預設值 | 說明 |
+|------|-----------|------|
+| `SPRING_PROFILES_ACTIVE` | *(未設定)* | 部署環境設為 `prod` |
 | `DB_HOST` | `localhost` | PostgreSQL 主機 |
 | `DB_PORT` | `5432` | PostgreSQL 埠號 |
 | `DB_NAME` | `fenpai` | 資料庫名稱 |
 | `DB_USER` | `fenpai` | 資料庫使用者 |
 | `DB_PASSWORD` | `fenpai` | 資料庫密碼 |
-| `JWT_SECRET` | *(預設值)* | **正式環境請務必更換** |
+| `JWT_SECRET` | **prod 環境必填** | `openssl rand -hex 64` 生成 |
 | `CORS_ORIGINS` | `http://localhost:5173` | 允許的前端來源 |
+
+Docker Compose 透過根目錄 `.env` 注入變數，詳見 [.env.example](.env.example)。
 
 ---
 
@@ -194,8 +209,4 @@ WebSocket 端點：`ws://localhost:8080/ws`（使用 SockJS + STOMP）
 
 ## 貢獻指南
 
-1. Fork 此專案
-2. 建立 feature branch：`git checkout -b feature/my-feature`
-3. 提交變更：`git commit -m 'feat: add my feature'`
-4. 推送至 branch：`git push origin feature/my-feature`
-5. 開啟 Pull Request
+詳見 [CONTRIBUTING.md](CONTRIBUTING.md)。
