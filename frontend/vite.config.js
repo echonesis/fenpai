@@ -52,17 +52,6 @@ export default defineConfig({
               },
             },
           },
-          {
-            urlPattern: /^http:\/\/localhost:8080\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 5,
-              },
-            },
-          },
         ],
       },
       devOptions: {

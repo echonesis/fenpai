@@ -35,6 +35,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGINS
-        sync: false   # 部署後在 Render dashboard 填入 Vercel frontend URL
+        value: https://placeholder.vercel.app  # 部署後在 Render dashboard 改為實際的 Vercel frontend URL
+        sync: false
       - key: SPRING_PROFILES_ACTIVE
         value: prod

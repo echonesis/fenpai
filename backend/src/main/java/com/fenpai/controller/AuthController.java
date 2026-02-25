@@ -1,5 +1,6 @@
 package com.fenpai.controller;
 
+import com.fenpai.config.JwtUtil;
 import com.fenpai.model.User;
 import com.fenpai.service.UserService;
 import jakarta.validation.Valid;
@@ -22,6 +23,7 @@ public class AuthController {
 
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
 
     record RegisterRequest(
         @NotBlank String name,
@@ -49,10 +51,13 @@ public class AuthController {
         Authentication auth = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(req.email(), req.password())
         );
-        // TODO: generate JWT token and return it
+        String token = jwtUtil.generateToken(auth.getName());
+        User user = userService.findByEmail(auth.getName());
         return ResponseEntity.ok(Map.of(
-            "message", "Login successful",
-            "email", auth.getName()
+            "token", token,
+            "id", user.getId(),
+            "name", user.getName(),
+            "email", user.getEmail()
         ));
     }
 }

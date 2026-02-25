@@ -26,10 +26,10 @@ Render 會讀取 repo 根目錄的 `render.yaml` 自動建立所有服務。
 2. 連結 GitHub，選擇 `fenpai` repo
 3. Render 自動偵測 `render.yaml`，預覽將建立：
    - `fenpai-db`（PostgreSQL，free plan）
-   - `fenpai-backend`（Java Web Service，free plan）
+   - `fenpai-backend`（Docker Web Service，free plan）
 4. 點選 **Apply** 開始部署
 
-> 首次建置約需 5～10 分鐘（Maven 下載依賴）。
+> 首次建置約需 10～15 分鐘（Docker image build + Maven 下載依賴）。
 
 ### 部署完成後：設定 CORS_ORIGINS
 
@@ -125,10 +125,4 @@ Render 會讀取 repo 根目錄的 `render.yaml` 自動建立所有服務。
 → 確認 Vercel 的 `VITE_API_URL` 是 Render backend 的完整 URL（含 `https://`，無尾端斜線）。
 
 **Render 建置失敗**
-→ 檢查 Render build log，常見原因為 Java 版本不符。確認 Render 使用 Java 17：
-在 `fenpai-backend` → **Settings** → **Environment** 加入 `JAVA_HOME` 或在 `render.yaml` 加上：
-```yaml
-envVars:
-  - key: JAVA_VERSION
-    value: "17"
-```
+→ 檢查 Render build log。後端使用 Docker 建置（`eclipse-temurin:17-jre-jammy`），Java 版本已固定在 Dockerfile 中，無需額外設定。常見原因為 Maven 依賴下載失敗，重新觸發部署通常可解決。

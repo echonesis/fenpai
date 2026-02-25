@@ -7,8 +7,10 @@
 export const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 export async function apiFetch(path, options = {}) {
+  const token = localStorage.getItem('token');
+  const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    headers: { 'Content-Type': 'application/json', ...authHeader, ...options.headers },
     ...options,
   });
   if (!res.ok) {

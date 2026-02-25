@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 const BANKS = [
   { code: "004", name: "臺灣銀行" },
@@ -213,12 +214,15 @@ export default function App() {
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 20, boxShadow: "0 4px 12px rgba(99,102,241,0.3)"
           }}>💸</div>
-          <div>
+          <div style={{ flex: 1 }}>
             <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1e1b4b", letterSpacing: -0.5 }}>
               催繳 QR Code
             </h1>
             <p style={{ margin: 0, fontSize: 12, color: "#7c3aed" }}>TWQR 轉帳條碼產生器</p>
           </div>
+          <Link to="/" style={{ fontSize: 13, color: "#6366f1", textDecoration: "none", fontWeight: 500 }}>
+            ← 首頁
+          </Link>
         </div>
 
         {/* Step bar */}
