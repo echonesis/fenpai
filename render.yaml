@@ -7,11 +7,10 @@ databases:
 services:
   - type: web
     name: fenpai-backend
-    runtime: java
+    runtime: docker
     plan: free
-    rootDir: backend
-    buildCommand: mvn package -DskipTests
-    startCommand: java -jar target/*.jar
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     envVars:
       - key: DB_HOST
         fromDatabase:
