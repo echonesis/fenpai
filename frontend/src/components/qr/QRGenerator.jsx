@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { apiFetch } from "../../lib/api";
 
 const BANKS = [
   { code: "004", name: "臺灣銀行" },
@@ -53,7 +54,6 @@ const BANKS = [
   { code: "850", name: "農業信用" },
 ];
 
-// Encode TWQR string for QR code
 function buildTWQRString(bankCode, account, amount) {
   const d1 = amount ? Math.round(parseFloat(amount) * 100) : null;
   const d6 = account.padStart(16, '0');
@@ -62,7 +62,6 @@ function buildTWQRString(bankCode, account, amount) {
   return str;
 }
 
-// QR Code generator using canvas (no library needed - uses Google Charts API via img)
 function QRDisplay({ value, size = 240 }) {
   const encoded = encodeURIComponent(value);
   const url = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encoded}&margin=10&color=1a1a2e&bgcolor=f0f4ff`;
@@ -77,7 +76,6 @@ function QRDisplay({ value, size = 240 }) {
   );
 }
 
-// Step indicator
 function Step({ num, label, active, done }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, opacity: active || done ? 1 : 0.4 }}>
@@ -98,39 +96,56 @@ function Step({ num, label, active, done }) {
   );
 }
 
-export default function App() {
+export default function QRGenerator() {
   const [step, setStep] = useState(1);
-  const [accounts, setAccounts] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("twqr_accounts") || "[]"); } catch { return []; }
-  });
+  const [accounts, setAccounts] = useState([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [form, setForm] = useState({ label: "", bankCode: "004", account: "" });
+  const [savingAccount, setSavingAccount] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [payerName, setPayerName] = useState("");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
-  const [generated, setGenerated] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    try { localStorage.setItem("twqr_accounts", JSON.stringify(accounts)); } catch {}
-  }, [accounts]);
+    apiFetch("/api/accounts")
+      .then(setAccounts)
+      .catch(() => setAccounts([]))
+      .finally(() => setLoadingAccounts(false));
+  }, []);
 
-  const addAccount = () => {
+  const addAccount = async () => {
     if (!form.label || !form.bankCode || !form.account) return;
-    const newAcc = { id: Date.now(), ...form };
-    setAccounts(prev => [...prev, newAcc]);
-    setForm({ label: "", bankCode: "004", account: "" });
+    setSavingAccount(true);
+    try {
+      const newAcc = await apiFetch("/api/accounts", {
+        method: "POST",
+        body: JSON.stringify({ label: form.label, bankCode: form.bankCode, accountNumber: form.account }),
+      });
+      setAccounts(prev => [...prev, newAcc]);
+      setForm({ label: "", bankCode: "004", account: "" });
+    } catch {
+      // ignore
+    } finally {
+      setSavingAccount(false);
+    }
   };
 
-  const removeAccount = (id) => {
-    setAccounts(prev => prev.filter(a => a.id !== id));
-    if (selectedAccount?.id === id) setSelectedAccount(null);
+  const removeAccount = async (id) => {
+    try {
+      await apiFetch(`/api/accounts/${id}`, { method: "DELETE" });
+      setAccounts(prev => prev.filter(a => a.id !== id));
+      if (selectedAccount?.id === id) setSelectedAccount(null);
+    } catch {
+      // ignore
+    }
   };
 
   const getBankName = (code) => BANKS.find(b => b.code === code)?.name || code;
 
   const qrValue = selectedAccount
-    ? buildTWQRString(selectedAccount.bankCode, selectedAccount.account, amount)
+    ? buildTWQRString(selectedAccount.bankCode, selectedAccount.accountNumber, amount)
     : "";
 
   const copyQRString = () => {
@@ -149,7 +164,6 @@ export default function App() {
     a.click();
   };
 
-  // Styles
   const card = {
     background: "#fff",
     borderRadius: 16,
@@ -196,7 +210,7 @@ export default function App() {
     })
   });
 
-  const label = { fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 6, display: "block" };
+  const labelStyle = { fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 6, display: "block" };
 
   return (
     <div style={{
@@ -220,8 +234,8 @@ export default function App() {
             </h1>
             <p style={{ margin: 0, fontSize: 12, color: "#7c3aed" }}>TWQR 轉帳條碼產生器</p>
           </div>
-          <Link to="/" style={{ fontSize: 13, color: "#6366f1", textDecoration: "none", fontWeight: 500 }}>
-            ← 首頁
+          <Link to="/profile" style={{ fontSize: 13, color: "#6366f1", textDecoration: "none", fontWeight: 500 }}>
+            ← 用戶
           </Link>
         </div>
 
@@ -246,12 +260,12 @@ export default function App() {
               </h2>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div>
-                  <label style={label}>帳戶名稱（顯示用）</label>
+                  <label style={labelStyle}>帳戶名稱（顯示用）</label>
                   <input style={input} placeholder="例：玉山數位帳戶、郵局帳戶" value={form.label}
                     onChange={e => setForm(f => ({ ...f, label: e.target.value }))} />
                 </div>
                 <div>
-                  <label style={label}>銀行</label>
+                  <label style={labelStyle}>銀行</label>
                   <select style={{ ...input }} value={form.bankCode}
                     onChange={e => setForm(f => ({ ...f, bankCode: e.target.value }))}>
                     {BANKS.map(b => (
@@ -260,19 +274,24 @@ export default function App() {
                   </select>
                 </div>
                 <div>
-                  <label style={label}>帳號</label>
+                  <label style={labelStyle}>帳號</label>
                   <input style={input} placeholder="輸入帳號（不含空格）" value={form.account}
                     onChange={e => setForm(f => ({ ...f, account: e.target.value.replace(/\s/g, "") }))} />
                 </div>
-                <button style={{ ...btn("primary"), marginTop: 4 }} onClick={addAccount}
-                  disabled={!form.label || !form.account}>
-                  ＋ 新增帳戶
+                <button
+                  style={{ ...btn("primary"), marginTop: 4, opacity: savingAccount ? 0.6 : 1 }}
+                  onClick={addAccount}
+                  disabled={!form.label || !form.account || savingAccount}>
+                  {savingAccount ? "儲存中..." : "＋ 新增帳戶"}
                 </button>
               </div>
             </div>
 
-            {/* 已儲存帳戶 */}
-            {accounts.length > 0 && (
+            {loadingAccounts ? (
+              <div style={{ ...card, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
+                載入帳戶中...
+              </div>
+            ) : accounts.length > 0 && (
               <div style={card}>
                 <h2 style={{ margin: "0 0 14px", fontSize: 16, fontWeight: 700, color: "#1e1b4b" }}>
                   已儲存帳戶
@@ -287,7 +306,7 @@ export default function App() {
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 14, color: "#1e293b" }}>{acc.label}</div>
                         <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
-                          {getBankName(acc.bankCode)} · {acc.account}
+                          {getBankName(acc.bankCode)} · {acc.accountNumber}
                         </div>
                       </div>
                       <button style={{ ...btn("danger"), padding: "6px 12px", fontSize: 12 }}
@@ -335,7 +354,7 @@ export default function App() {
                       </div>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 14, color: "#1e293b" }}>{acc.label}</div>
-                        <div style={{ fontSize: 12, color: "#64748b" }}>{getBankName(acc.bankCode)} · {acc.account}</div>
+                        <div style={{ fontSize: 12, color: "#64748b" }}>{getBankName(acc.bankCode)} · {acc.accountNumber}</div>
                       </div>
                     </div>
                   </div>
@@ -349,12 +368,12 @@ export default function App() {
               </h2>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div>
-                  <label style={label}>付款人姓名（選填）</label>
+                  <label style={labelStyle}>付款人姓名（選填）</label>
                   <input style={input} placeholder="例：小明、阿強" value={payerName}
                     onChange={e => setPayerName(e.target.value)} />
                 </div>
                 <div>
-                  <label style={label}>金額（元）</label>
+                  <label style={labelStyle}>金額（元）</label>
                   <div style={{ position: "relative" }}>
                     <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 14 }}>NT$</span>
                     <input style={{ ...input, paddingLeft: 44 }} type="number" placeholder="0" value={amount}
@@ -365,7 +384,7 @@ export default function App() {
                   </p>
                 </div>
                 <div>
-                  <label style={label}>備註（選填，僅顯示用）</label>
+                  <label style={labelStyle}>備註（選填，僅顯示用）</label>
                   <input style={input} placeholder="例：3月聚餐費、日本旅遊分帳" value={memo}
                     onChange={e => setMemo(e.target.value)} />
                 </div>
@@ -377,7 +396,7 @@ export default function App() {
               <button
                 style={{ ...btn("primary"), flex: 2, opacity: !selectedAccount || !amount ? 0.5 : 1 }}
                 disabled={!selectedAccount || !amount}
-                onClick={() => { setGenerated(true); setStep(3); }}>
+                onClick={() => setStep(3)}>
                 產生 QR Code →
               </button>
             </div>
@@ -387,7 +406,6 @@ export default function App() {
         {/* ── Step 3: QR Code ── */}
         {step === 3 && selectedAccount && (
           <>
-            {/* 催繳資訊卡 */}
             <div style={{
               ...card,
               background: "linear-gradient(135deg, #1e1b4b, #312e81)",
@@ -406,7 +424,6 @@ export default function App() {
               {memo && <p style={{ margin: 0, fontSize: 13, opacity: 0.7, background: "rgba(255,255,255,0.1)", borderRadius: 8, padding: "4px 12px", display: "inline-block" }}>{memo}</p>}
             </div>
 
-            {/* QR Code */}
             <div style={{ ...card, textAlign: "center" }}>
               <p style={{ margin: "0 0 16px", fontSize: 13, color: "#64748b" }}>
                 用手機銀行 App 掃描以下 QR Code
@@ -421,7 +438,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 帳戶資訊 */}
               <div style={{
                 background: "#f8fafc", borderRadius: 10, padding: "12px 16px",
                 border: "1px solid #e2e8f0", marginBottom: 16, textAlign: "left"
@@ -435,7 +451,7 @@ export default function App() {
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <span style={{ fontSize: 12, color: "#64748b" }}>帳號</span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: "#1e293b", letterSpacing: 1 }}>
-                    {selectedAccount.account}
+                    {selectedAccount.accountNumber}
                   </span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -446,7 +462,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Actions */}
               <div style={{ display: "flex", gap: 8 }}>
                 <button style={{ ...btn("ghost"), flex: 1, fontSize: 13 }} onClick={copyQRString}>
                   {copied ? "✓ 已複製" : "複製 QR 字串"}

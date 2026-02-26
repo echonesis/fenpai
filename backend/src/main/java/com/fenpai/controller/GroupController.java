@@ -41,4 +41,24 @@ public class GroupController {
                                                   @Valid @RequestBody AddMemberRequest req) {
         return ResponseEntity.ok(groupService.addMember(groupId, req.userId()));
     }
+
+    // TODO: 更新群組名稱
+    @PutMapping("/{groupId}")
+    public ResponseEntity<?> updateGroup(@PathVariable Long groupId,
+                                         @Valid @RequestBody CreateGroupRequest req) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    // TODO: 刪除群組（只有建立者可刪）
+    @DeleteMapping("/{groupId}")
+    public ResponseEntity<Void> deleteGroup(@PathVariable Long groupId) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    // TODO: 移除群組成員
+    @DeleteMapping("/{groupId}/members/{userId}")
+    public ResponseEntity<Void> removeMember(@PathVariable Long groupId,
+                                              @PathVariable Long userId) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
 }

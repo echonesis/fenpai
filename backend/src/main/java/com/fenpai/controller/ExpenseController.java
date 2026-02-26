@@ -42,4 +42,17 @@ public class ExpenseController {
     public ResponseEntity<List<Expense>> getExpensesByGroup(@PathVariable Long groupId) {
         return ResponseEntity.ok(expenseService.getExpensesByGroup(groupId));
     }
+
+    // TODO: 編輯支出（金額、描述、分帳方式）
+    @PutMapping("/{expenseId}")
+    public ResponseEntity<Expense> updateExpense(@PathVariable Long expenseId,
+                                                  @Valid @RequestBody CreateExpenseRequest req) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    // TODO: 刪除支出
+    @DeleteMapping("/{expenseId}")
+    public ResponseEntity<Void> deleteExpense(@PathVariable Long expenseId) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
 }
