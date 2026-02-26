@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get('redirect') || '/';
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,7 +22,7 @@ export default function Login() {
         body: JSON.stringify(form),
       });
       login(data.token, { id: data.id, name: data.name, email: data.email });
-      navigate('/');
+      navigate(redirect);
     } catch (err) {
       setError(err.status === 401 ? '帳號或密碼錯誤' : '登入失敗，請稍後再試');
     } finally {

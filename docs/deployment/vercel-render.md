@@ -31,16 +31,35 @@ Render 會讀取 repo 根目錄的 `render.yaml` 自動建立所有服務。
 
 > 首次建置約需 10～15 分鐘（Docker image build + Maven 下載依賴）。
 
-### 部署完成後：設定 CORS_ORIGINS
+### 部署完成後：設定前端 URL
 
-後端需要知道前端的 URL 才能允許跨域請求。待 Vercel 部署完成後回來填入。
+後端需要知道前端的 URL 才能允許跨域請求與產生邀請連結。待 Vercel 部署完成後回來填入。
 
 1. Render Dashboard → `fenpai-backend` → **Environment**
-2. 找到 `CORS_ORIGINS`，填入 Vercel 前端網址：
-   ```
-   https://your-app.vercel.app
-   ```
+2. 填入以下兩個變數（值相同，都是 Vercel 前端網址）：
+
+   | 變數 | 值 |
+   |------|----|
+   | `CORS_ORIGINS` | `https://your-app.vercel.app` |
+   | `FRONTEND_BASE_URL` | `https://your-app.vercel.app` |
+
 3. 點選 **Save Changes**，服務自動重啟
+
+### 設定 Resend API Key（寄送邀請信）
+
+若要讓系統實際寄出邀請信，需要設定 Resend API Key。不設定也不會報錯，但邀請連結只會印在後端 log 中，使用者收不到信。
+
+1. 前往 [resend.com](https://resend.com) → 註冊／登入
+2. 左側選單 → **API Keys** → **Create API Key**
+3. 名稱填 `fenpai-production`，權限選 **Full Access**，點 **Add**
+4. **複製 API Key**（只會顯示一次，請立即儲存）
+5. Render Dashboard → `fenpai-backend` → **Environment** → **Add Environment Variable**
+6. 填入：
+   - Key：`RESEND_API_KEY`
+   - Value：貼上剛才複製的 API Key（格式為 `re_xxxxxxxxxx`）
+7. 點選 **Save Changes**，服務自動重啟
+
+> **注意：** Resend 免費方案每月可寄 3,000 封信，每天上限 100 封，個人專案足夠使用。但免費方案只能從 `onboarding@resend.dev` 寄信，收件人必須是你自己的帳號。若要寄給任意使用者，需驗證自己的網域（Resend → **Domains** → Add Domain）。
 
 ---
 
@@ -94,7 +113,9 @@ Render 會讀取 repo 根目錄的 `render.yaml` 自動建立所有服務。
 | `DB_USER` | 自動（fromDatabase） | 資料庫使用者 |
 | `DB_PASSWORD` | 自動（fromDatabase） | 資料庫密碼 |
 | `JWT_SECRET` | 自動（`generateValue: true`）| JWT 簽章密鑰，Render 自動生成，無需手動填寫 |
-| `CORS_ORIGINS` | **手動填入** | Vercel 前端 URL |
+| `CORS_ORIGINS` | **手動填入** | Vercel 前端 URL，例如 `https://fenpai.vercel.app` |
+| `FRONTEND_BASE_URL` | **手動填入** | 同上，用於邀請信連結，例如 `https://fenpai.vercel.app` |
+| `RESEND_API_KEY` | **手動填入**（選填） | [Resend](https://resend.com) API Key（格式：`re_xxxxxxxxxx`），不設則邀請連結只印在後端 log，使用者收不到信 |
 
 ### Vercel（前端）
 
@@ -126,3 +147,8 @@ Render 會讀取 repo 根目錄的 `render.yaml` 自動建立所有服務。
 
 **Render 建置失敗**
 → 檢查 Render build log。後端使用 Docker 建置（`eclipse-temurin:17-jre-jammy`），Java 版本已固定在 Dockerfile 中，無需額外設定。常見原因為 Maven 依賴下載失敗，重新觸發部署通常可解決。
+
+**邀請信收不到**
+→ 確認 `RESEND_API_KEY` 已在 Render → `fenpai-backend` → **Environment** 填入。
+→ Resend 免費方案寄件人固定為 `onboarding@resend.dev`，且只能寄給已驗證的自有信箱。若要寄給所有使用者，需在 Resend 後台驗證自己的網域。
+→ 可查看 Render 後端 log：若 Key 未設定，邀請連結會以 `[INVITE]` 前綴印在 log 中。

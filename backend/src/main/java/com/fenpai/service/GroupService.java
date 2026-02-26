@@ -15,6 +15,11 @@ public class GroupService {
     private final GroupMemberRepository groupMemberRepository;
     private final UserRepository userRepository;
 
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
+    }
+
     @Transactional
     public Group createGroup(String name, Long createdByUserId) {
         User creator = userRepository.findById(createdByUserId)
@@ -32,13 +37,22 @@ public class GroupService {
         return group;
     }
 
+    @Transactional(readOnly = true)
     public List<Group> getGroupsForUser(Long userId) {
         return groupRepository.findGroupsByUserId(userId);
     }
 
+    @Transactional(readOnly = true)
     public Group getGroupById(Long groupId) {
         return groupRepository.findById(groupId)
             .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<User> getMembers(Long groupId) {
+        groupRepository.findById(groupId)
+            .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId));
+        return groupMemberRepository.findUsersByGroupId(groupId);
     }
 
     @Transactional

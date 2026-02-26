@@ -2,6 +2,7 @@ package com.fenpai.controller;
 
 import com.fenpai.config.JwtUtil;
 import com.fenpai.model.User;
+import com.fenpai.service.InvitationService;
 import com.fenpai.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -22,6 +23,7 @@ import java.util.Map;
 public class AuthController {
 
     private final UserService userService;
+    private final InvitationService invitationService;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
@@ -39,6 +41,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
         User user = userService.register(req.name(), req.email(), req.password());
+        invitationService.autoAcceptPendingInvitations(user.getEmail());
         return ResponseEntity.ok(Map.of(
             "id", user.getId(),
             "name", user.getName(),

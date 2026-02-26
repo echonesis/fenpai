@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 
 export default function Register() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get('redirect') || '/';
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,7 +19,8 @@ export default function Register() {
         method: 'POST',
         body: JSON.stringify(form),
       });
-      navigate('/login');
+      const loginPath = redirect !== '/' ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
+      navigate(loginPath);
     } catch (err) {
       if (err.status === 409) {
         setError('此 Email 已被註冊');

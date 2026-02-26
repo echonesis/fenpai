@@ -7,9 +7,11 @@ public class AppProperties {
 
     private final Jwt jwt = new Jwt();
     private final Cors cors = new Cors();
+    private final Frontend frontend = new Frontend();
 
     public Jwt getJwt() { return jwt; }
     public Cors getCors() { return cors; }
+    public Frontend getFrontend() { return frontend; }
 
     public static class Jwt {
         private String secret;
@@ -22,9 +24,16 @@ public class AppProperties {
     }
 
     public static class Cors {
-        private String allowedOrigins = "http://localhost:5173";
+        private String allowedOrigins;
 
         public String getAllowedOrigins() { return allowedOrigins; }
         public void setAllowedOrigins(String allowedOrigins) { this.allowedOrigins = allowedOrigins; }
+    }
+
+    public static class Frontend {
+        private String baseUrl;
+
+        public String getBaseUrl() { return baseUrl; }
+        public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
     }
 }

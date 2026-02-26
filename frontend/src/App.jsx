@@ -10,6 +10,8 @@ import Records from './pages/Records';
 import Profile from './pages/Profile';
 import AddExpense from './pages/AddExpense';
 import QRGenerator from './components/qr/QRGenerator';
+import GroupDetail from './pages/GroupDetail';
+import InviteAccept from './pages/InviteAccept';
 
 function ProtectedLayout({ children }) {
   return (
@@ -32,6 +34,8 @@ export default function App() {
           <Route path="/records" element={<ProtectedLayout><Records /></ProtectedLayout>} />
           <Route path="/profile" element={<ProtectedLayout><Profile /></ProtectedLayout>} />
           <Route path="/qr" element={<ProtectedRoute><QRGenerator /></ProtectedRoute>} />
+          <Route path="/groups/:groupId" element={<ProtectedLayout><GroupDetail /></ProtectedLayout>} />
+          <Route path="/invite/:token" element={<InviteAccept />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

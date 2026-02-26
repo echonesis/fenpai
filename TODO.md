@@ -7,10 +7,15 @@
 - [x] POST `/api/auth/login`
 
 ### Groups `/api/groups`
-- [x] POST `/api/groups`
-- [x] GET `/api/groups/user/{userId}`
-- [x] GET `/api/groups/{groupId}`
-- [x] POST `/api/groups/{groupId}/members`
+- [x] POST `/api/groups` — 建立群組
+- [x] GET `/api/groups` — 取得目前登入用戶的群組列表
+- [x] GET `/api/groups/{groupId}` — 取得群組詳情
+- [x] GET `/api/groups/{groupId}/members` — 取得群組成員列表
+- [x] POST `/api/groups/{groupId}/invite` — 邀請成員（已註冊直接加入 / 未註冊寄信）
+
+### Invitations `/api/invite`
+- [x] GET `/api/invite/{token}` — 取得邀請資訊（公開）
+- [x] POST `/api/invite/{token}/accept` — 接受邀請（需登入）
 
 ### Expenses `/api/expenses`
 - [x] POST `/api/expenses`
@@ -43,5 +48,6 @@
 ## 其他待討論
 - [ ] 通知機制：有人新增支出時要不要透過 WebSocket 推播？
 - [ ] 支出分類（食物、交通、住宿等）
-- [ ] 群組邀請連結 / QR code
+- [x] 群組邀請連結（email + 連結 + 自動接受）
+- [ ] QR code 邀請
 - [ ] 匯出功能（CSV / PDF）

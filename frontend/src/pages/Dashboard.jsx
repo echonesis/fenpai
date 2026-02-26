@@ -13,11 +13,11 @@ export default function Dashboard() {
   const greeting = hour < 12 ? '早安' : hour < 18 ? '午安' : '晚安';
 
   useEffect(() => {
-    apiFetch(`/api/groups/user/${auth.user.id}`)
+    apiFetch('/api/groups')
       .then(setGroups)
       .catch(() => setGroups([]))
       .finally(() => setLoadingGroups(false));
-  }, [auth.user.id]);
+  }, []);
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-8 pb-4">
