@@ -8,16 +8,33 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [groups, setGroups] = useState([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
+  const [iOwe, setIOwe] = useState(null);
+  const [owedToMe, setOwedToMe] = useState(null);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? '早安' : hour < 18 ? '午安' : '晚安';
 
   useEffect(() => {
     apiFetch('/api/groups')
-      .then(setGroups)
+      .then(gs => {
+        setGroups(gs);
+        return Promise.all(
+          gs.map(g => apiFetch(`/api/balances/group/${g.id}`).catch(() => []))
+        );
+      })
+      .then(allBalances => {
+        const userId = Number(auth.user.id);
+        let owe = 0, owed = 0;
+        allBalances.flat().forEach(b => {
+          if (Number(b.fromUserId) === userId) owe += Number(b.amount);
+          if (Number(b.toUserId) === userId) owed += Number(b.amount);
+        });
+        setIOwe(owe);
+        setOwedToMe(owed);
+      })
       .catch(() => setGroups([]))
       .finally(() => setLoadingGroups(false));
-  }, []);
+  }, [auth.user.id]);
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-8 pb-4">
@@ -40,14 +57,17 @@ export default function Dashboard() {
         <div className="flex gap-4">
           <div className="flex-1 bg-red-50 rounded-xl p-3 text-center">
             <p className="text-xs text-slate-500 mb-1">我欠別人</p>
-            <p className="text-lg font-bold text-red-500">—</p>
+            <p className="text-lg font-bold text-red-500">
+              {iOwe === null ? '…' : iOwe === 0 ? '✓' : `NT$${iOwe}`}
+            </p>
           </div>
           <div className="flex-1 bg-green-50 rounded-xl p-3 text-center">
             <p className="text-xs text-slate-500 mb-1">別人欠我</p>
-            <p className="text-lg font-bold text-green-600">—</p>
+            <p className="text-lg font-bold text-green-600">
+              {owedToMe === null ? '…' : owedToMe === 0 ? '✓' : `NT$${owedToMe}`}
+            </p>
           </div>
         </div>
-        <p className="text-xs text-slate-300 text-center mt-2">結算功能開發中</p>
       </div>
 
       {/* 群組列表 */}

@@ -28,15 +28,20 @@ fenpai/
 │   │   ├── components/
 │   │   │   └── qr/
 │   │   │       └── QRGenerator.jsx   # TWQR 催繳 QR Code 產生器
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx       # JWT 登入狀態管理
 │   │   ├── pages/
 │   │   │   ├── Login.jsx
 │   │   │   ├── Register.jsx
-│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Dashboard.jsx         # 首頁：待結清摘要 + 群組列表
 │   │   │   ├── Groups.jsx            # 群組列表 + 建立群組
-│   │   │   ├── GroupDetail.jsx       # 群組成員 + 邀請成員
+│   │   │   ├── GroupDetail.jsx       # 結算摘要 + 成員管理 + 邀請
+│   │   │   ├── AddExpense.jsx        # 新增支出（EQUAL / CUSTOM 分帳）
+│   │   │   ├── Records.jsx           # 跨群組支出記錄
+│   │   │   ├── Profile.jsx           # 個人資料 + 綁定帳戶
 │   │   │   └── InviteAccept.jsx      # 接受邀請頁
 │   │   ├── lib/
-│   │   │   └── api.js                # apiFetch 封裝
+│   │   │   └── api.js                # apiFetch 封裝（自動帶 JWT）
 │   │   ├── App.jsx
 │   │   ├── main.jsx
 │   │   └── index.css
@@ -50,16 +55,21 @@ fenpai/
 │   │   │   ├── AuthController.java
 │   │   │   ├── GroupController.java
 │   │   │   ├── InvitationController.java
-│   │   │   └── ExpenseController.java
+│   │   │   ├── ExpenseController.java
+│   │   │   ├── BalanceController.java  # 結算計算 + 記錄還款
+│   │   │   ├── AccountController.java  # QR 付款帳戶管理
+│   │   │   └── UserController.java
 │   │   ├── service/
 │   │   │   ├── UserService.java
 │   │   │   ├── GroupService.java
 │   │   │   ├── InvitationService.java
-│   │   │   ├── EmailService.java      # Resend SMTP 寄送邀請信
-│   │   │   └── ExpenseService.java
+│   │   │   ├── EmailService.java       # Resend SMTP 寄送邀請信
+│   │   │   ├── ExpenseService.java
+│   │   │   ├── BalanceService.java     # 最少轉帳演算法 + 結算邏輯
+│   │   │   └── AccountService.java
 │   │   ├── repository/
 │   │   ├── model/
-│   │   └── config/                   # Security、WebSocket、AppProperties
+│   │   └── config/                    # Security、AppProperties、JwtUtil
 │   ├── src/main/resources/
 │   │   ├── application.properties        # 本機開發預設值
 │   │   ├── application-prod.properties   # 正式環境（缺變數即啟動失敗）

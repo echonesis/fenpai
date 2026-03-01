@@ -18,8 +18,13 @@
 - [x] POST `/api/invite/{token}/accept` — 接受邀請（需登入）
 
 ### Expenses `/api/expenses`
-- [x] POST `/api/expenses`
-- [x] GET `/api/expenses/group/{groupId}`
+- [x] POST `/api/expenses` — 新增支出（EQUAL / CUSTOM 分帳）
+- [x] GET `/api/expenses/group/{groupId}` — 取得群組支出列表
+
+### 結算 `/api/balances`
+- [x] GET `/api/balances/group/{groupId}` — 計算群組內誰欠誰多少錢（最少轉帳演算法）
+- [x] POST `/api/balances/settle` — 記錄一筆還款（fromUserId, toUserId, amount, groupId）
+- [ ] GET `/api/balances/group/{groupId}/history` — 查看群組還款紀錄
 
 ---
 
@@ -34,9 +39,7 @@
 - [ ] PUT `/api/expenses/{expenseId}` — 編輯支出（金額、描述、分帳方式）
 - [ ] DELETE `/api/expenses/{expenseId}` — 刪除支出
 
-### 結算 `/api/balances`
-- [ ] GET `/api/balances/group/{groupId}` — 計算群組內誰欠誰多少錢（簡化後的結算清單）
-- [ ] POST `/api/balances/settle` — 記錄一筆還款（paidBy, paidTo, amount, groupId）
+### 結算
 - [ ] GET `/api/balances/group/{groupId}/history` — 查看群組還款紀錄
 
 ### 用戶管理 `/api/users`

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../../lib/api";
 
 const BANKS = [
@@ -97,14 +97,15 @@ function Step({ num, label, active, done }) {
 }
 
 export default function QRGenerator() {
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
   const [accounts, setAccounts] = useState([]);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [form, setForm] = useState({ label: "", bankCode: "004", account: "" });
   const [savingAccount, setSavingAccount] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
-  const [payerName, setPayerName] = useState("");
-  const [amount, setAmount] = useState("");
+  const [payerName, setPayerName] = useState(searchParams.get("payerName") ?? "");
+  const [amount, setAmount] = useState(searchParams.get("amount") ?? "");
   const [memo, setMemo] = useState("");
   const [copied, setCopied] = useState(false);
 

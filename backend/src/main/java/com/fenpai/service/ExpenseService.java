@@ -63,7 +63,7 @@ public class ExpenseService {
             }
         }
         expenseSplitRepository.saveAll(splits);
-        return expense;
+        return expenseRepository.findByIdWithRelations(expense.getId()).orElse(expense);
     }
 
     public List<Expense> getExpensesByGroup(Long groupId) {

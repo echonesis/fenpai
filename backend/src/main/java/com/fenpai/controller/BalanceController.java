@@ -1,5 +1,6 @@
 package com.fenpai.controller;
 
+import com.fenpai.service.BalanceService;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -13,26 +14,26 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class BalanceController {
 
+    private final BalanceService balanceService;
+
     record SettleRequest(
         @NotNull Long groupId,
-        @NotNull Long paidByUserId,
-        @NotNull Long paidToUserId,
+        @NotNull Long fromUserId,
+        @NotNull Long toUserId,
         @NotNull @Positive BigDecimal amount
     ) {}
 
-    // TODO: 計算群組內誰欠誰多少錢（簡化後的最少轉帳數）
     @GetMapping("/group/{groupId}")
     public ResponseEntity<?> getGroupBalances(@PathVariable Long groupId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        return ResponseEntity.ok(balanceService.calculateBalances(groupId));
     }
 
-    // TODO: 記錄一筆還款
     @PostMapping("/settle")
     public ResponseEntity<?> settle(@RequestBody SettleRequest req) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        balanceService.settle(req.groupId(), req.fromUserId(), req.toUserId(), req.amount());
+        return ResponseEntity.noContent().build();
     }
 
-    // TODO: 查看群組還款紀錄
     @GetMapping("/group/{groupId}/history")
     public ResponseEntity<?> getSettlementHistory(@PathVariable Long groupId) {
         throw new UnsupportedOperationException("Not implemented yet");

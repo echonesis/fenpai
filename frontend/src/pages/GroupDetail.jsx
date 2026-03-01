@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function GroupDetail() {
   const { groupId } = useParams();
   const navigate = useNavigate();
+  const { auth } = useAuth();
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
+  const [balances, setBalances] = useState(null); // null=未載入, []=結清, [...]有欠款
+  const [settlingKey, setSettlingKey] = useState(null); // index of item being settled
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -17,11 +21,35 @@ export default function GroupDetail() {
     Promise.all([
       apiFetch(`/api/groups/${groupId}`),
       apiFetch(`/api/groups/${groupId}/members`),
+      apiFetch(`/api/balances/group/${groupId}`).catch(() => null),
     ])
-      .then(([g, m]) => { setGroup(g); setMembers(m); })
+      .then(([g, m, b]) => { setGroup(g); setMembers(m); setBalances(b); })
       .catch(err => setLoadError(err.message))
       .finally(() => setLoading(false));
   }, [groupId]);
+
+  async function handleSettle(b, idx) {
+    setSettlingKey(idx);
+    try {
+      await apiFetch('/api/balances/settle', {
+        method: 'POST',
+        body: JSON.stringify({
+          groupId: Number(groupId),
+          fromUserId: b.fromUserId,
+          toUserId: b.toUserId,
+          amount: b.amount,
+        }),
+      });
+    } catch {
+      // ignore settle response body parse errors
+    }
+    try {
+      const updated = await apiFetch(`/api/balances/group/${groupId}`).catch(() => null);
+      setBalances(updated);
+    } finally {
+      setSettlingKey(null);
+    }
+  }
 
   async function handleInvite(e) {
     e.preventDefault();
@@ -65,6 +93,58 @@ export default function GroupDetail() {
 
       <h2 className="text-xl font-bold text-slate-700 mb-6">{group?.name}</h2>
 
+      {/* Balances */}
+      <section className="bg-white rounded-2xl border border-slate-100 p-4 mb-4 shadow-sm">
+        <p className="text-sm font-medium text-slate-500 mb-3">結算</p>
+        {balances === null ? (
+          <p className="text-sm text-slate-400">載入失敗，請重新整理。</p>
+        ) : balances.length === 0 ? (
+          <p className="text-sm text-green-600">大家已結清！</p>
+        ) : (
+          <ul className="space-y-3">
+            {balances.map((b, i) => {
+              const isCreditor = Number(auth.user.id) === Number(b.toUserId);
+              return (
+                <li key={i} className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-slate-700">
+                      <span className="font-medium">{b.fromUserName}</span>
+                      <span className="text-slate-400 mx-1">欠</span>
+                      <span className="font-medium">{b.toUserName}</span>
+                    </span>
+                    <span className="text-sm font-bold text-red-500 ml-2">NT${b.amount}</span>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/qr?amount=${b.amount}&payerName=${encodeURIComponent(b.fromUserName)}`)}
+                    disabled={!isCreditor}
+                    title={isCreditor ? '產生催繳 QR Code' : '只有收款人才能使用'}
+                    className={`flex-shrink-0 text-xs px-2.5 py-1.5 rounded-lg border transition ${
+                      isCreditor
+                        ? 'border-indigo-200 text-indigo-600 hover:bg-indigo-50'
+                        : 'border-slate-100 text-slate-300 cursor-not-allowed'
+                    }`}
+                  >
+                    QR
+                  </button>
+                  <button
+                    onClick={() => handleSettle(b, i)}
+                    disabled={!isCreditor || settlingKey === i}
+                    title={isCreditor ? '標記已收款並結清' : '只有收款人才能結清'}
+                    className={`flex-shrink-0 text-xs px-2.5 py-1.5 rounded-lg border transition ${
+                      isCreditor
+                        ? 'border-green-200 text-green-600 hover:bg-green-50'
+                        : 'border-slate-100 text-slate-300 cursor-not-allowed'
+                    }`}
+                  >
+                    {settlingKey === i ? '…' : '結清'}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
       {/* Members */}
       <section className="bg-white rounded-2xl border border-slate-100 p-4 mb-4 shadow-sm">
         <p className="text-sm font-medium text-slate-500 mb-3">成員（{members.length}）</p>
@@ -82,6 +162,17 @@ export default function GroupDetail() {
           ))}
         </ul>
       </section>
+
+      {/* Add expense */}
+      <button
+        onClick={() => navigate(`/add-expense?groupId=${groupId}`)}
+        className="w-full flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium py-3 rounded-2xl transition mb-4"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        新增支出
+      </button>
 
       {/* Invite */}
       <section className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
