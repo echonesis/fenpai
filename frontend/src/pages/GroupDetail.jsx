@@ -18,6 +18,17 @@ export default function GroupDetail() {
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState(null); // { type: 'success'|'warning'|'error', text }
 
+  // Rename state
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [renameSaving, setRenameSaving] = useState(false);
+
+  // Delete state
+  const [deleting, setDeleting] = useState(false);
+
+  // Kick state
+  const [kickingUserId, setKickingUserId] = useState(null);
+
   useEffect(() => {
     Promise.all([
       apiFetch(`/api/groups/${groupId}`),
@@ -29,6 +40,8 @@ export default function GroupDetail() {
       .catch(err => setLoadError(err.message))
       .finally(() => setLoading(false));
   }, [groupId]);
+
+  const isCreator = group && Number(auth.user.id) === Number(group.createdById);
 
   async function handleSettle(b, idx) {
     setSettlingKey(idx);
@@ -54,6 +67,49 @@ export default function GroupDetail() {
       setHistory(updatedHistory);
     } finally {
       setSettlingKey(null);
+    }
+  }
+
+  async function handleRename(e) {
+    e.preventDefault();
+    if (!renameValue.trim()) return;
+    setRenameSaving(true);
+    try {
+      const updated = await apiFetch(`/api/groups/${groupId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name: renameValue.trim() }),
+      });
+      setGroup(updated);
+      setIsRenaming(false);
+    } catch (err) {
+      alert('改名失敗：' + err.message);
+    } finally {
+      setRenameSaving(false);
+    }
+  }
+
+  async function handleDeleteGroup() {
+    if (!window.confirm(`確定要刪除群組「${group.name}」？此操作無法復原，所有支出紀錄都將一併刪除。`)) return;
+    setDeleting(true);
+    try {
+      await apiFetch(`/api/groups/${groupId}`, { method: 'DELETE' });
+      navigate('/groups');
+    } catch (err) {
+      alert('刪除失敗：' + err.message);
+      setDeleting(false);
+    }
+  }
+
+  async function handleKick(memberId, memberName) {
+    if (!window.confirm(`確定要移除成員「${memberName}」？`)) return;
+    setKickingUserId(memberId);
+    try {
+      await apiFetch(`/api/groups/${groupId}/members/${memberId}`, { method: 'DELETE' });
+      setMembers(prev => prev.filter(m => m.id !== memberId));
+    } catch (err) {
+      alert('移除失敗：' + err.message);
+    } finally {
+      setKickingUserId(null);
     }
   }
 
@@ -97,7 +153,51 @@ export default function GroupDetail() {
         ← 群組
       </button>
 
-      <h2 className="text-xl font-bold text-slate-700 mb-6">{group?.name}</h2>
+      {/* Group name + rename */}
+      <div className="flex items-center gap-2 mb-6">
+        {isRenaming ? (
+          <form onSubmit={handleRename} className="flex items-center gap-2 flex-1">
+            <input
+              type="text"
+              value={renameValue}
+              onChange={e => setRenameValue(e.target.value)}
+              className="flex-1 border border-indigo-300 rounded-xl px-3 py-1.5 text-lg font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={renameSaving || !renameValue.trim()}
+              className="text-xs bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg transition"
+            >
+              {renameSaving ? '…' : '儲存'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsRenaming(false)}
+              className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg transition"
+            >
+              取消
+            </button>
+          </form>
+        ) : (
+          <>
+            <h2 className="text-xl font-bold text-slate-700 flex-1">{group?.name}</h2>
+            {isCreator && (
+              <button
+                onClick={() => { setRenameValue(group.name); setIsRenaming(true); }}
+                title="改名"
+                className="text-slate-400 hover:text-indigo-500 transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                  strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Z" />
+                </svg>
+              </button>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Balances */}
       <section className="bg-white rounded-2xl border border-slate-100 p-4 mb-4 shadow-sm">
@@ -160,10 +260,19 @@ export default function GroupDetail() {
               <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
                 {m.name.charAt(0).toUpperCase()}
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-slate-700">{m.name}</p>
                 <p className="text-xs text-slate-400">{m.email}</p>
               </div>
+              {isCreator && Number(m.id) !== Number(auth.user.id) && (
+                <button
+                  onClick={() => handleKick(m.id, m.name)}
+                  disabled={kickingUserId === m.id}
+                  className="flex-shrink-0 text-xs px-2.5 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition disabled:opacity-50"
+                >
+                  {kickingUserId === m.id ? '…' : '踢出'}
+                </button>
+              )}
             </li>
           ))}
         </ul>
@@ -212,7 +321,7 @@ export default function GroupDetail() {
       </button>
 
       {/* Invite */}
-      <section className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+      <section className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm mb-4">
         <p className="text-sm font-medium text-slate-500 mb-3">邀請成員</p>
         <form onSubmit={handleInvite} className="flex gap-2">
           <input
@@ -242,6 +351,17 @@ export default function GroupDetail() {
           </p>
         )}
       </section>
+
+      {/* Delete group (creator only) */}
+      {isCreator && (
+        <button
+          onClick={handleDeleteGroup}
+          disabled={deleting}
+          className="w-full text-sm text-red-400 hover:text-red-600 border border-red-100 hover:border-red-200 hover:bg-red-50 py-3 rounded-2xl transition disabled:opacity-50 mb-4"
+        >
+          {deleting ? '刪除中…' : '刪除群組'}
+        </button>
+      )}
     </div>
   );
 }

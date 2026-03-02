@@ -44,7 +44,7 @@ public class GroupService {
 
     @Transactional(readOnly = true)
     public Group getGroupById(Long groupId) {
-        return groupRepository.findById(groupId)
+        return groupRepository.findByIdWithCreator(groupId)
             .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId));
     }
 
@@ -53,6 +53,45 @@ public class GroupService {
         groupRepository.findById(groupId)
             .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId));
         return groupMemberRepository.findUsersByGroupId(groupId);
+    }
+
+    @Transactional
+    public Group updateGroupName(Long groupId, String currentUserEmail, String newName) {
+        User user = getUserByEmail(currentUserEmail);
+        Group group = groupRepository.findByIdWithCreator(groupId)
+            .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId));
+        if (!group.getCreatedBy().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Forbidden: only the group creator can rename this group");
+        }
+        group.setName(newName.trim());
+        return groupRepository.save(group);
+    }
+
+    @Transactional
+    public void deleteGroup(Long groupId, String currentUserEmail) {
+        User user = getUserByEmail(currentUserEmail);
+        Group group = groupRepository.findByIdWithCreator(groupId)
+            .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId));
+        if (!group.getCreatedBy().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Forbidden: only the group creator can delete this group");
+        }
+        groupRepository.deleteByIdDirect(groupId);
+    }
+
+    @Transactional
+    public void removeMember(Long groupId, Long targetUserId, String currentUserEmail) {
+        User user = getUserByEmail(currentUserEmail);
+        Group group = groupRepository.findByIdWithCreator(groupId)
+            .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId));
+        if (!group.getCreatedBy().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Forbidden: only the group creator can remove members");
+        }
+        if (targetUserId.equals(group.getCreatedBy().getId())) {
+            throw new IllegalArgumentException("Cannot remove the group creator");
+        }
+        GroupMember member = groupMemberRepository.findByGroupIdAndUserId(groupId, targetUserId)
+            .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+        groupMemberRepository.delete(member);
     }
 
     @Transactional

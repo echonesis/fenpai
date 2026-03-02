@@ -10,7 +10,10 @@
 - [x] POST `/api/groups` — 建立群組
 - [x] GET `/api/groups` — 取得目前登入用戶的群組列表
 - [x] GET `/api/groups/{groupId}` — 取得群組詳情
+- [x] PUT `/api/groups/{groupId}` — 更新群組名稱（只有建立者）
+- [x] DELETE `/api/groups/{groupId}` — 刪除群組（只有建立者）
 - [x] GET `/api/groups/{groupId}/members` — 取得群組成員列表
+- [x] DELETE `/api/groups/{groupId}/members/{userId}` — 移除群組成員（只有建立者）
 - [x] POST `/api/groups/{groupId}/invite` — 邀請成員（已註冊直接加入 / 未註冊寄信）
 
 ### Invitations `/api/invite`
@@ -29,18 +32,9 @@
 - [x] POST `/api/balances/settle` — 記錄一筆還款（fromUserId, toUserId, amount, groupId）
 - [x] GET `/api/balances/group/{groupId}/history` — 查看群組還款紀錄
 
----
-
-## 待實作
-
-### 群組管理
-- [ ] PUT `/api/groups/{groupId}` — 更新群組名稱
-- [ ] DELETE `/api/groups/{groupId}` — 刪除群組（需確認權限，只有建立者可刪）
-- [ ] DELETE `/api/groups/{groupId}/members/{userId}` — 移除群組成員
-
 ### 用戶管理 `/api/users`
-- [ ] GET `/api/users/me` — 取得目前登入用戶資料
-- [ ] PUT `/api/users/me` — 更新個人資料（name、password）
+- [x] GET `/api/users/me` — 取得目前登入用戶資料
+- [x] PUT `/api/users/me` — 更新個人資料（name、password，改密碼需驗舊密碼）
 
 ---
 

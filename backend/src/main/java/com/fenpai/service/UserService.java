@@ -48,4 +48,25 @@ public class UserService implements UserDetailsService {
         return userRepository.findByEmail(email)
             .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
     }
+
+    @Transactional
+    public User updateMe(String currentUserEmail, String name, String currentPassword, String newPassword) {
+        User user = findByEmail(currentUserEmail);
+
+        if (name != null && !name.isBlank()) {
+            user.setName(name.trim());
+        }
+
+        if (newPassword != null && !newPassword.isBlank()) {
+            if (currentPassword == null || currentPassword.isBlank()) {
+                throw new IllegalArgumentException("Current password is required to change password");
+            }
+            if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+                throw new IllegalArgumentException("Current password is incorrect");
+            }
+            user.setPasswordHash(passwordEncoder.encode(newPassword));
+        }
+
+        return userRepository.save(user);
+    }
 }

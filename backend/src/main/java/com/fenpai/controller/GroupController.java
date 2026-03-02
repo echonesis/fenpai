@@ -26,8 +26,10 @@ public class GroupController {
     record CreateGroupRequest(@NotBlank String name) {}
     record InviteRequest(@NotBlank @Email String email) {}
 
-    record GroupResponse(Long id, String name) {
-        static GroupResponse from(Group g) { return new GroupResponse(g.getId(), g.getName()); }
+    record GroupResponse(Long id, String name, Long createdById) {
+        static GroupResponse from(Group g) {
+            return new GroupResponse(g.getId(), g.getName(), g.getCreatedBy().getId());
+        }
     }
 
     record MemberResponse(Long id, String name, String email) {
@@ -71,23 +73,27 @@ public class GroupController {
         return ResponseEntity.ok(Map.of("result", result));
     }
 
-    // TODO: 更新群組名稱
     @PutMapping("/{groupId}")
-    public ResponseEntity<?> updateGroup(@PathVariable Long groupId,
-                                         @Valid @RequestBody CreateGroupRequest req) {
-        throw new UnsupportedOperationException("Not implemented yet");
+    public ResponseEntity<GroupResponse> updateGroup(
+            @PathVariable Long groupId,
+            @Valid @RequestBody CreateGroupRequest req,
+            Principal principal) {
+        Group group = groupService.updateGroupName(groupId, principal.getName(), req.name());
+        return ResponseEntity.ok(GroupResponse.from(group));
     }
 
-    // TODO: 刪除群組（只有建立者可刪）
     @DeleteMapping("/{groupId}")
-    public ResponseEntity<Void> deleteGroup(@PathVariable Long groupId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+    public ResponseEntity<Void> deleteGroup(@PathVariable Long groupId, Principal principal) {
+        groupService.deleteGroup(groupId, principal.getName());
+        return ResponseEntity.noContent().build();
     }
 
-    // TODO: 移除群組成員
     @DeleteMapping("/{groupId}/members/{userId}")
-    public ResponseEntity<Void> removeMember(@PathVariable Long groupId,
-                                              @PathVariable Long userId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+    public ResponseEntity<Void> removeMember(
+            @PathVariable Long groupId,
+            @PathVariable Long userId,
+            Principal principal) {
+        groupService.removeMember(groupId, userId, principal.getName());
+        return ResponseEntity.noContent().build();
     }
 }

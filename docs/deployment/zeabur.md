@@ -47,6 +47,8 @@ Zeabur Project: fenpai
    | `DB_PASSWORD` | 同上 → `password` |
    | `JWT_SECRET` | 本地執行 `openssl rand -hex 64` 後貼入 |
    | `CORS_ORIGINS` | 待前端部署完成後填入 Zeabur frontend URL |
+   | `FRONTEND_BASE_URL` | 同上，用於邀請信連結（待前端部署後填入） |
+   | `RESEND_API_KEY` | [Resend](https://resend.com) API Key（選填，格式：`re_xxxxxxxxxx`），不設則邀請連結只印在後端 log |
 
 5. **Deploy**，等待建置完成
 
@@ -67,12 +69,33 @@ Zeabur Project: fenpai
 
 ---
 
-## 第五步：回填 CORS_ORIGINS
+## 第五步：回填前端相關變數
 
 1. 取得前端部署完成的 URL，例如 `https://fenpai-frontend.zeabur.app`
 2. 回到後端服務 → **Variables**
-3. 將 `CORS_ORIGINS` 填入前端 URL
+3. 填入以下兩個變數（值相同，都是前端 URL）：
+
+   | 變數 | 值 |
+   |------|----|
+   | `CORS_ORIGINS` | `https://fenpai-frontend.zeabur.app` |
+   | `FRONTEND_BASE_URL` | `https://fenpai-frontend.zeabur.app` |
+
 4. 重新部署後端
+
+### 設定 Resend API Key（寄送邀請信）
+
+若要讓系統實際寄出邀請信，需要設定 Resend API Key。不設定也不會報錯，但邀請連結只會印在後端 log 中，使用者收不到信。
+
+1. 前往 [resend.com](https://resend.com) → 註冊／登入
+2. 左側選單 → **API Keys** → **Create API Key**
+3. 名稱填 `fenpai-production`，權限選 **Full Access**，點 **Add**
+4. **複製 API Key**（只會顯示一次，請立即儲存）
+5. 回到後端服務 → **Variables** → 新增：
+   - Key：`RESEND_API_KEY`
+   - Value：貼上 API Key（格式為 `re_xxxxxxxxxx`）
+6. 重新部署後端
+
+> **注意：** Resend 免費方案每月可寄 3,000 封信，每天上限 100 封。免費方案只能從 `onboarding@resend.dev` 寄信，收件人必須是你自己的帳號。若要寄給任意使用者，需在 Resend 後台驗證自己的網域（**Domains** → Add Domain）。
 
 ---
 
@@ -89,6 +112,8 @@ Zeabur Project: fenpai
 | `DB_PASSWORD` | 從 PostgreSQL 服務注入 | |
 | `JWT_SECRET` | **手動填入** | 隨機長字串 |
 | `CORS_ORIGINS` | **手動填入** | Zeabur frontend URL |
+| `FRONTEND_BASE_URL` | **手動填入** | 同上，用於邀請信連結 |
+| `RESEND_API_KEY` | **手動填入**（選填） | Resend API Key（格式：`re_xxxxxxxxxx`），不設則邀請連結只印在後端 log |
 
 ### 前端
 

@@ -1,29 +1,46 @@
 package com.fenpai.controller;
 
-import jakarta.validation.constraints.NotBlank;
+import com.fenpai.model.User;
+import com.fenpai.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
+    private final UserService userService;
+
     record UpdateProfileRequest(
-        @NotBlank String name,
+        String name,
+        String currentPassword,
         String password
     ) {}
 
-    // TODO: 取得目前登入用戶資料（從 JWT 解析）
-    @GetMapping("/me")
-    public ResponseEntity<?> getMe() {
-        throw new UnsupportedOperationException("Not implemented yet");
+    record UserResponse(Long id, String name, String email) {
+        static UserResponse from(User u) { return new UserResponse(u.getId(), u.getName(), u.getEmail()); }
     }
 
-    // TODO: 更新個人資料（name、password）
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getMe(Principal principal) {
+        User user = userService.findByEmail(principal.getName());
+        return ResponseEntity.ok(UserResponse.from(user));
+    }
+
     @PutMapping("/me")
-    public ResponseEntity<?> updateMe(@RequestBody UpdateProfileRequest req) {
-        throw new UnsupportedOperationException("Not implemented yet");
+    public ResponseEntity<UserResponse> updateMe(
+            @RequestBody UpdateProfileRequest req,
+            Principal principal) {
+        User user = userService.updateMe(
+            principal.getName(),
+            req.name(),
+            req.currentPassword(),
+            req.password()
+        );
+        return ResponseEntity.ok(UserResponse.from(user));
     }
 }
