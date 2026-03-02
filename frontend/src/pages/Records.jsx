@@ -3,6 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
+async function fetchAllExpenses() {
+  const groups = await apiFetch('/api/groups');
+  if (groups.length === 0) return [];
+  const results = await Promise.all(
+    groups.map(g =>
+      apiFetch(`/api/expenses/group/${g.id}`)
+        .then(exps => exps.map(e => ({ ...e, groupName: g.name })))
+        .catch(() => [])
+    )
+  );
+  return results.flat().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
 function formatDate(iso) {
   const d = new Date(iso);
   return `${d.getMonth() + 1}/${d.getDate()}`;
@@ -16,24 +29,21 @@ export default function Records() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    apiFetch('/api/groups')
-      .then(groups => {
-        if (groups.length === 0) return [];
-        return Promise.all(
-          groups.map(g =>
-            apiFetch(`/api/expenses/group/${g.id}`)
-              .then(exps => exps.map(e => ({ ...e, groupName: g.name })))
-              .catch(() => [])
-          )
-        ).then(results => results.flat());
-      })
-      .then(all => {
-        all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setExpenses(all);
-      })
+    fetchAllExpenses()
+      .then(setExpenses)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleDelete(expenseId) {
+    if (!window.confirm('確定要刪除這筆支出嗎？')) return;
+    try {
+      await apiFetch(`/api/expenses/${expenseId}`, { method: 'DELETE' });
+      setExpenses(prev => prev.filter(e => e.id !== expenseId));
+    } catch (err) {
+      alert(err.message);
+    }
+  }
 
   if (loading) return (
     <div className="max-w-lg mx-auto px-4 pt-8">
@@ -92,13 +102,29 @@ export default function Records() {
                       </span>
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <p className="text-base font-semibold text-slate-800">
                       ${Number(exp.amount).toFixed(2)}
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-400">
                       {exp.createdAt ? formatDate(exp.createdAt) : ''}
                     </p>
+                    {paidByMe && (
+                      <div className="flex gap-2 mt-1">
+                        <button
+                          onClick={() => navigate(`/add-expense?expenseId=${exp.id}`)}
+                          className="text-xs text-indigo-500 hover:text-indigo-700"
+                        >
+                          編輯
+                        </button>
+                        <button
+                          onClick={() => handleDelete(exp.id)}
+                          className="text-xs text-red-400 hover:text-red-600"
+                        >
+                          刪除
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </li>

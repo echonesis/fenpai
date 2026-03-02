@@ -20,11 +20,14 @@
 ### Expenses `/api/expenses`
 - [x] POST `/api/expenses` — 新增支出（EQUAL / CUSTOM 分帳）
 - [x] GET `/api/expenses/group/{groupId}` — 取得群組支出列表
+- [x] GET `/api/expenses/{expenseId}` — 取得單筆支出（含 splits）
+- [x] PUT `/api/expenses/{expenseId}` — 編輯支出（金額、描述、分帳方式）
+- [x] DELETE `/api/expenses/{expenseId}` — 刪除支出
 
 ### 結算 `/api/balances`
 - [x] GET `/api/balances/group/{groupId}` — 計算群組內誰欠誰多少錢（最少轉帳演算法）
 - [x] POST `/api/balances/settle` — 記錄一筆還款（fromUserId, toUserId, amount, groupId）
-- [ ] GET `/api/balances/group/{groupId}/history` — 查看群組還款紀錄
+- [x] GET `/api/balances/group/{groupId}/history` — 查看群組還款紀錄
 
 ---
 
@@ -34,13 +37,6 @@
 - [ ] PUT `/api/groups/{groupId}` — 更新群組名稱
 - [ ] DELETE `/api/groups/{groupId}` — 刪除群組（需確認權限，只有建立者可刪）
 - [ ] DELETE `/api/groups/{groupId}/members/{userId}` — 移除群組成員
-
-### 支出管理
-- [ ] PUT `/api/expenses/{expenseId}` — 編輯支出（金額、描述、分帳方式）
-- [ ] DELETE `/api/expenses/{expenseId}` — 刪除支出
-
-### 結算
-- [ ] GET `/api/balances/group/{groupId}/history` — 查看群組還款紀錄
 
 ### 用戶管理 `/api/users`
 - [ ] GET `/api/users/me` — 取得目前登入用戶資料

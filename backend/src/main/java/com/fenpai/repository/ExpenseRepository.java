@@ -16,4 +16,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     @Query("SELECT e FROM Expense e JOIN FETCH e.group JOIN FETCH e.paidBy WHERE e.id = :id")
     Optional<Expense> findByIdWithRelations(@Param("id") Long id);
+
+    @Query("SELECT DISTINCT e FROM Expense e JOIN FETCH e.group JOIN FETCH e.paidBy LEFT JOIN FETCH e.splits s LEFT JOIN FETCH s.user WHERE e.id = :id")
+    Optional<Expense> findByIdWithSplits(@Param("id") Long id);
 }

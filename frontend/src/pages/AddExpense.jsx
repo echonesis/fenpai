@@ -9,6 +9,8 @@ export default function AddExpense() {
   const { auth } = useAuth();
 
   const presetGroupId = searchParams.get('groupId');
+  const expenseId = searchParams.get('expenseId');
+  const isEditMode = !!expenseId;
 
   const [groups, setGroups] = useState([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
@@ -33,28 +35,56 @@ export default function AddExpense() {
       .then(([g, m]) => {
         setSelectedGroup(g);
         setMembers(m);
-        setPaidBy(auth.user.id);
-        const init = {};
-        m.forEach(mem => { init[mem.id] = ''; });
-        setCustomSplits(init);
+        if (!isEditMode) {
+          setPaidBy(auth.user.id);
+          const init = {};
+          m.forEach(mem => { init[mem.id] = ''; });
+          setCustomSplits(init);
+        }
       })
       .catch(() => {})
       .finally(() => setLoadingMembers(false));
   }
 
-  // Fetch groups list when no presetGroupId
+  // Edit mode: load existing expense then members
   useEffect(() => {
-    if (presetGroupId) return;
+    if (!isEditMode) return;
+    setLoadingMembers(true);
+    apiFetch(`/api/expenses/${expenseId}`)
+      .then(exp => {
+        setDescription(exp.description);
+        setAmount(String(exp.amount));
+        setPaidBy(exp.paidById);
+        setSplitType(exp.splitType);
+        setSelectedGroup({ id: exp.groupId, name: exp.groupName });
+        return apiFetch(`/api/groups/${exp.groupId}/members`).then(m => {
+          setMembers(m);
+          const init = {};
+          m.forEach(mem => { init[mem.id] = ''; });
+          if (exp.splitType === 'CUSTOM') {
+            exp.splits.forEach(s => { init[s.userId] = String(s.amount); });
+          }
+          setCustomSplits(init);
+        });
+      })
+      .catch(() => setMessage({ type: 'error', text: '載入支出資料失敗' }))
+      .finally(() => setLoadingMembers(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenseId]);
+
+  // Fetch groups list when no presetGroupId and not edit mode
+  useEffect(() => {
+    if (presetGroupId || isEditMode) return;
     setLoadingGroups(true);
     apiFetch('/api/groups')
       .then(setGroups)
       .catch(() => setGroups([]))
       .finally(() => setLoadingGroups(false));
-  }, [presetGroupId]);
+  }, [presetGroupId, isEditMode]);
 
   // Fetch group info + members from URL param (runs once on mount)
   useEffect(() => {
-    if (presetGroupId) fetchGroupAndMembers(presetGroupId);
+    if (presetGroupId && !isEditMode) fetchGroupAndMembers(presetGroupId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presetGroupId]);
 
@@ -97,17 +127,31 @@ export default function AddExpense() {
     setSubmitting(true);
     setMessage(null);
     try {
-      await apiFetch('/api/expenses', {
-        method: 'POST',
-        body: JSON.stringify({
-          groupId: selectedGroup.id,
-          paidByUserId: paidBy,
-          description: desc,
-          amount: amt,
-          splitType,
-          customSplits: splits,
-        }),
-      });
+      if (isEditMode) {
+        await apiFetch(`/api/expenses/${expenseId}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            groupId: selectedGroup.id,
+            paidByUserId: paidBy,
+            description: desc,
+            amount: amt,
+            splitType,
+            customSplits: splits,
+          }),
+        });
+      } else {
+        await apiFetch('/api/expenses', {
+          method: 'POST',
+          body: JSON.stringify({
+            groupId: selectedGroup.id,
+            paidByUserId: paidBy,
+            description: desc,
+            amount: amt,
+            splitType,
+            customSplits: splits,
+          }),
+        });
+      }
       navigate('/records');
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
@@ -123,10 +167,12 @@ export default function AddExpense() {
   return (
     <div className="max-w-lg mx-auto px-4 pt-8 pb-8">
       <button onClick={() => navigate(-1)} className="text-indigo-500 text-sm mb-4">← 返回</button>
-      <h2 className="text-xl font-bold text-slate-700 mb-6">新增支出</h2>
+      <h2 className="text-xl font-bold text-slate-700 mb-6">
+        {isEditMode ? '編輯支出' : '新增支出'}
+      </h2>
 
-      {/* Step 1: group selection */}
-      {!presetGroupId && !selectedGroup && (
+      {/* Step 1: group selection (create mode only, no presetGroupId) */}
+      {!isEditMode && !presetGroupId && !selectedGroup && (
         <section className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
           <p className="text-sm font-medium text-slate-500 mb-3">選擇群組</p>
           {loadingGroups ? (
@@ -155,7 +201,7 @@ export default function AddExpense() {
       )}
 
       {/* Loading members */}
-      {(presetGroupId || selectedGroup) && loadingMembers && (
+      {((presetGroupId || selectedGroup || isEditMode) && loadingMembers) && (
         <div className="space-y-3">
           {[1, 2].map(i => <div key={i} className="bg-white rounded-2xl h-16 animate-pulse border border-slate-100" />)}
         </div>
@@ -168,7 +214,7 @@ export default function AddExpense() {
             <p className="text-sm text-slate-500">
               群組：<span className="font-medium text-slate-700">{selectedGroup.name}</span>
             </p>
-            {!presetGroupId && (
+            {!presetGroupId && !isEditMode && (
               <button
                 type="button"
                 onClick={() => { setSelectedGroup(null); setMembers([]); setMessage(null); }}
@@ -292,7 +338,7 @@ export default function AddExpense() {
             disabled={submitting}
             className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-medium py-3 rounded-xl transition"
           >
-            {submitting ? '儲存中…' : '儲存支出'}
+            {submitting ? '儲存中…' : isEditMode ? '儲存變更' : '儲存支出'}
           </button>
         </form>
       )}

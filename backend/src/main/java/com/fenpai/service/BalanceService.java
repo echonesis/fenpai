@@ -22,6 +22,12 @@ public class BalanceService {
                               Long toUserId, String toUserName,
                               BigDecimal amount) {}
 
+    public record PaymentHistoryItem(Long id,
+                                     Long fromUserId, String fromUserName,
+                                     Long toUserId, String toUserName,
+                                     BigDecimal amount, String note,
+                                     String createdAt) {}
+
     @Transactional(readOnly = true)
     public List<BalanceItem> calculateBalances(Long groupId) {
         Map<Long, BigDecimal> balanceMap = new LinkedHashMap<>();
@@ -93,6 +99,21 @@ public class BalanceService {
         }
 
         return result;
+    }
+
+    @Transactional(readOnly = true)
+    public List<PaymentHistoryItem> getPaymentHistory(Long groupId) {
+        return paymentRepository.findByGroupIdWithRelations(groupId)
+            .stream()
+            .sorted(Comparator.comparing(Payment::getCreatedAt).reversed())
+            .map(p -> new PaymentHistoryItem(
+                p.getId(),
+                p.getFromUser().getId(), p.getFromUser().getName(),
+                p.getToUser().getId(), p.getToUser().getName(),
+                p.getAmount(), p.getNote(),
+                p.getCreatedAt().toString()
+            ))
+            .toList();
     }
 
     @Transactional

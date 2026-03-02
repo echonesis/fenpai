@@ -11,6 +11,7 @@ export default function GroupDetail() {
   const [members, setMembers] = useState([]);
   const [balances, setBalances] = useState(null); // null=未載入, []=結清, [...]有欠款
   const [settlingKey, setSettlingKey] = useState(null); // index of item being settled
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -22,8 +23,9 @@ export default function GroupDetail() {
       apiFetch(`/api/groups/${groupId}`),
       apiFetch(`/api/groups/${groupId}/members`),
       apiFetch(`/api/balances/group/${groupId}`).catch(() => null),
+      apiFetch(`/api/balances/group/${groupId}/history`).catch(() => []),
     ])
-      .then(([g, m, b]) => { setGroup(g); setMembers(m); setBalances(b); })
+      .then(([g, m, b, h]) => { setGroup(g); setMembers(m); setBalances(b); setHistory(h); })
       .catch(err => setLoadError(err.message))
       .finally(() => setLoading(false));
   }, [groupId]);
@@ -44,8 +46,12 @@ export default function GroupDetail() {
       // ignore settle response body parse errors
     }
     try {
-      const updated = await apiFetch(`/api/balances/group/${groupId}`).catch(() => null);
+      const [updated, updatedHistory] = await Promise.all([
+        apiFetch(`/api/balances/group/${groupId}`).catch(() => null),
+        apiFetch(`/api/balances/group/${groupId}/history`).catch(() => []),
+      ]);
       setBalances(updated);
+      setHistory(updatedHistory);
     } finally {
       setSettlingKey(null);
     }
@@ -161,6 +167,37 @@ export default function GroupDetail() {
             </li>
           ))}
         </ul>
+      </section>
+
+      {/* Settlement history */}
+      <section className="bg-white rounded-2xl border border-slate-100 p-4 mb-4 shadow-sm">
+        <p className="text-sm font-medium text-slate-500 mb-3">還款紀錄</p>
+        {history.length === 0 ? (
+          <p className="text-sm text-slate-400">尚無還款紀錄</p>
+        ) : (
+          <ul className="space-y-2">
+            {history.map(h => (
+              <li key={h.id} className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm text-slate-700">
+                    <span className="font-medium">{h.fromUserName}</span>
+                    <span className="text-slate-400 mx-1">還給</span>
+                    <span className="font-medium">{h.toUserName}</span>
+                  </span>
+                  {h.note && (
+                    <span className="text-xs text-slate-400 ml-2">{h.note}</span>
+                  )}
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <span className="text-sm font-semibold text-green-600">NT${h.amount}</span>
+                  <p className="text-xs text-slate-400">
+                    {new Date(h.createdAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {/* Add expense */}

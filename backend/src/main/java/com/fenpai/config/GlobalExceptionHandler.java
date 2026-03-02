@@ -15,6 +15,7 @@ public class GlobalExceptionHandler {
         String lower = msg.toLowerCase();
         int status = lower.contains("not found") ? 404
                    : lower.contains("already") ? 409
+                   : lower.contains("forbidden") ? 403
                    : 400;
         return ResponseEntity.status(status).body(Map.of("message", msg));
     }

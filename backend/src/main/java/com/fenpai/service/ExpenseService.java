@@ -69,4 +69,68 @@ public class ExpenseService {
     public List<Expense> getExpensesByGroup(Long groupId) {
         return expenseRepository.findByGroupIdOrderByCreatedAtDesc(groupId);
     }
+
+    public Expense getExpenseWithSplits(Long expenseId) {
+        return expenseRepository.findByIdWithSplits(expenseId)
+            .orElseThrow(() -> new IllegalArgumentException("Expense not found"));
+    }
+
+    @Transactional
+    public Expense updateExpense(Long expenseId, String currentUserEmail, String description,
+                                  BigDecimal amount, String splitType,
+                                  Map<Long, BigDecimal> customSplits) {
+        Expense expense = expenseRepository.findByIdWithRelations(expenseId)
+            .orElseThrow(() -> new IllegalArgumentException("Expense not found"));
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if (!expense.getPaidBy().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Forbidden: only the payer can edit this expense");
+        }
+
+        expense.setDescription(description);
+        expense.setAmount(amount);
+        expense.setSplitType(splitType);
+        expenseRepository.save(expense);
+
+        expenseSplitRepository.deleteAllByExpenseId(expenseId);
+
+        Long groupId = expense.getGroup().getId();
+        List<ExpenseSplit> splits = new ArrayList<>();
+        if ("EQUAL".equals(splitType)) {
+            List<GroupMember> members = groupMemberRepository.findByGroupId(groupId);
+            BigDecimal splitAmount = amount.divide(
+                BigDecimal.valueOf(members.size()), 2, RoundingMode.HALF_UP);
+            for (GroupMember member : members) {
+                splits.add(ExpenseSplit.builder()
+                    .expense(expense)
+                    .user(member.getUser())
+                    .amount(splitAmount)
+                    .build());
+            }
+        } else if ("CUSTOM".equals(splitType) && customSplits != null) {
+            for (Map.Entry<Long, BigDecimal> entry : customSplits.entrySet()) {
+                User splitUser = userRepository.findById(entry.getKey())
+                    .orElseThrow(() -> new IllegalArgumentException("User not found: " + entry.getKey()));
+                splits.add(ExpenseSplit.builder()
+                    .expense(expense)
+                    .user(splitUser)
+                    .amount(entry.getValue())
+                    .build());
+            }
+        }
+        expenseSplitRepository.saveAll(splits);
+        return expenseRepository.findByIdWithRelations(expense.getId()).orElse(expense);
+    }
+
+    @Transactional
+    public void deleteExpense(Long expenseId, String currentUserEmail) {
+        Expense expense = expenseRepository.findByIdWithRelations(expenseId)
+            .orElseThrow(() -> new IllegalArgumentException("Expense not found"));
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if (!expense.getPaidBy().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Forbidden: only the payer can delete this expense");
+        }
+        expenseRepository.delete(expense);
+    }
 }

@@ -1,6 +1,7 @@
 package com.fenpai.controller;
 
 import com.fenpai.model.Expense;
+import com.fenpai.model.ExpenseSplit;
 import com.fenpai.service.ExpenseService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -9,7 +10,9 @@ import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.math.BigDecimal;
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +32,14 @@ public class ExpenseController {
         Map<Long, BigDecimal> customSplits
     ) {}
 
+    record SplitDetail(Long userId, String userName, BigDecimal amount) {}
+
+    record ExpenseDetailResponse(
+        Long id, String description, BigDecimal amount, String splitType,
+        Long groupId, String groupName, Long paidById, String paidByName,
+        List<SplitDetail> splits
+    ) {}
+
     @PostMapping
     public ResponseEntity<Expense> createExpense(@Valid @RequestBody CreateExpenseRequest req) {
         Expense expense = expenseService.createExpense(
@@ -43,16 +54,34 @@ public class ExpenseController {
         return ResponseEntity.ok(expenseService.getExpensesByGroup(groupId));
     }
 
-    // TODO: 編輯支出（金額、描述、分帳方式）
-    @PutMapping("/{expenseId}")
-    public ResponseEntity<Expense> updateExpense(@PathVariable Long expenseId,
-                                                  @Valid @RequestBody CreateExpenseRequest req) {
-        throw new UnsupportedOperationException("Not implemented yet");
+    @GetMapping("/{expenseId}")
+    public ResponseEntity<ExpenseDetailResponse> getExpense(@PathVariable Long expenseId) {
+        Expense e = expenseService.getExpenseWithSplits(expenseId);
+        List<SplitDetail> splits = e.getSplits().stream()
+            .map(s -> new SplitDetail(s.getUser().getId(), s.getUser().getName(), s.getAmount()))
+            .toList();
+        return ResponseEntity.ok(new ExpenseDetailResponse(
+            e.getId(), e.getDescription(), e.getAmount(), e.getSplitType(),
+            e.getGroup().getId(), e.getGroup().getName(),
+            e.getPaidBy().getId(), e.getPaidBy().getName(),
+            splits
+        ));
     }
 
-    // TODO: 刪除支出
+    @PutMapping("/{expenseId}")
+    public ResponseEntity<Expense> updateExpense(@PathVariable Long expenseId,
+                                                  @Valid @RequestBody CreateExpenseRequest req,
+                                                  Principal principal) {
+        Expense expense = expenseService.updateExpense(
+            expenseId, principal.getName(),
+            req.description(), req.amount(), req.splitType(), req.customSplits()
+        );
+        return ResponseEntity.ok(expense);
+    }
+
     @DeleteMapping("/{expenseId}")
-    public ResponseEntity<Void> deleteExpense(@PathVariable Long expenseId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+    public ResponseEntity<Void> deleteExpense(@PathVariable Long expenseId, Principal principal) {
+        expenseService.deleteExpense(expenseId, principal.getName());
+        return ResponseEntity.noContent().build();
     }
 }

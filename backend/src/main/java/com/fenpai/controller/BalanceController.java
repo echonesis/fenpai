@@ -36,6 +36,6 @@ public class BalanceController {
 
     @GetMapping("/group/{groupId}/history")
     public ResponseEntity<?> getSettlementHistory(@PathVariable Long groupId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        return ResponseEntity.ok(balanceService.getPaymentHistory(groupId));
     }
 }
