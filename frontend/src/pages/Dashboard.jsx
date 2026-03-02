@@ -37,19 +37,23 @@ export default function Dashboard() {
   }, [auth.user.id]);
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-8 pb-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-indigo-700">分派 Fenpai</h1>
-          <p className="text-slate-500 text-sm mt-0.5">
-            {greeting}，<span className="font-medium text-slate-700">{auth.user.name}</span>！
-          </p>
+    <>
+      {/* Fixed header */}
+      <header className="fixed top-0 left-0 right-0 z-30 bg-white border-b border-slate-100 shadow-sm">
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-indigo-700">分派 Fenpai</h1>
+            <p className="text-slate-500 text-xs mt-0.5">
+              {greeting}，<span className="font-medium text-slate-700">{auth.user.name}</span>！
+            </p>
+          </div>
+          <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-base">
+            {auth.user.name?.[0]?.toUpperCase()}
+          </div>
         </div>
-        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg">
-          {auth.user.name?.[0]?.toUpperCase()}
-        </div>
-      </div>
+      </header>
+
+      <div className="max-w-lg mx-auto px-4 pt-[68px] pb-4">
 
       {/* 待結清摘要 */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-5">
@@ -122,5 +126,6 @@ export default function Dashboard() {
         )}
       </div>
     </div>
+    </>
   );
 }
