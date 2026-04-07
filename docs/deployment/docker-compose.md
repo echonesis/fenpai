@@ -106,21 +106,55 @@ cp .env.example .env
 |------|------|----------|
 | `JWT_SECRET` | JWT 簽章密鑰 | `openssl rand -hex 64` |
 
+若要啟用 Google SSO，還需要填入以下變數：
+
+| 變數 | 說明 |
+|------|------|
+| `GOOGLE_CLIENT_ID` | 後端驗證 Google ID token 用的 OAuth Web Client ID |
+| `VITE_GOOGLE_CLIENT_ID` | 前端 Vite build 時注入的 Google Identity Services Client ID |
+
+> `GOOGLE_CLIENT_ID` 與 `VITE_GOOGLE_CLIENT_ID` 通常填同一個值。因為前端是先 build 成靜態檔再交給 Nginx，`VITE_GOOGLE_CLIENT_ID` 必須在 `docker compose up --build` 時就提供，不能等容器啟動後再補。
+
 選填欄位（有預設值）：
 
 | 變數 | 預設值 | 說明 |
 |------|--------|------|
 | `CORS_ORIGINS` | `http://localhost:5173` | 允許的前端 origin |
 
-VPS 部署時 `CORS_ORIGINS` 須改為正式網域：
+可直接參考以下 `.env` 範例：
 
 ```bash
 # .env
 JWT_SECRET=<openssl rand -hex 64 的輸出>
-CORS_ORIGINS=https://your-domain.com
+ 
+# 本機 Docker Compose 可維持 localhost；VPS / 自架請改成正式前端網址
+CORS_ORIGINS=http://localhost:5173
+FRONTEND_BASE_URL=http://localhost:5173
+
+# Google SSO
+GOOGLE_CLIENT_ID=123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com
+
+# 選填：邀請信寄送
+# RESEND_API_KEY=re_xxxxxxxxxx
 ```
 
+若是 VPS / 自架正式環境，請把 `CORS_ORIGINS` 與 `FRONTEND_BASE_URL` 改成正式網域，例如 `https://your-domain.com`。
+
 `docker-compose.yml` 會自動讀取同目錄的 `.env` 檔。
+
+### Google SSO 設定
+
+若你希望 Docker Compose 跑起來的前端也能顯示 Google 登入按鈕並正常登入，除了 `.env` 要有 `GOOGLE_CLIENT_ID` / `VITE_GOOGLE_CLIENT_ID`，還要在 Google Cloud Console 的同一個 OAuth Web Client 加入對應網址到 **Authorized JavaScript origins**：
+
+- 本機 Docker Compose：`http://localhost:5173`
+- 自架正式站：`https://your-domain.com`
+
+如果改了 `VITE_GOOGLE_CLIENT_ID` 或前端網域，記得重新 build 前端映像：
+
+```bash
+docker compose up --build frontend -d
+```
 
 ---
 
@@ -143,3 +177,8 @@ node_modules
 dist
 .env*
 ```
+
+**Docker Compose 跑起來了，但看不到 Google 登入按鈕**
+→ 確認根目錄 `.env` 已設定 `VITE_GOOGLE_CLIENT_ID`。
+→ 確認是用 `docker compose up --build` 重建過前端，不是只重啟既有容器。
+→ 確認 Google Cloud Console 的 **Authorized JavaScript origins** 已加入實際前端網址。

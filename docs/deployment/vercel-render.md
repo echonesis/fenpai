@@ -30,20 +30,41 @@ Render 會讀取 repo 根目錄的 `render.yaml` 自動建立所有服務。
 4. 點選 **Apply** 開始部署
 
 > 首次建置約需 10～15 分鐘（Docker image build + Maven 下載依賴）。
+> `render.yaml` 會先建立 `CORS_ORIGINS` / `FRONTEND_BASE_URL` placeholder 與空的 `GOOGLE_CLIENT_ID`，部署完成後仍需回 Render Dashboard 填入正式值。
 
 ### 部署完成後：設定前端 URL
 
-後端需要知道前端的 URL 才能允許跨域請求與產生邀請連結。待 Vercel 部署完成後回來填入。
+後端需要知道前端的 URL 才能允許跨域請求、產生邀請連結，並驗證 Google SSO。待 Vercel 部署完成後回來填入。
 
 1. Render Dashboard → `fenpai-backend` → **Environment**
-2. 填入以下兩個變數（值相同，都是 Vercel 前端網址）：
+2. 至少確認以下變數：
 
    | 變數 | 值 |
    |------|----|
    | `CORS_ORIGINS` | `https://your-app.vercel.app` |
    | `FRONTEND_BASE_URL` | `https://your-app.vercel.app` |
+   | `GOOGLE_CLIENT_ID` | `xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com` |
 
 3. 點選 **Save Changes**，服務自動重啟
+
+### 設定 Google SSO
+
+若要讓使用者能直接用 Google 帳號登入／註冊，需先在 Google Cloud Console 建立 Web OAuth Client，這通常不需要額外付費。
+
+1. 進入 Google Cloud Console → **APIs & Services** → **Credentials**
+2. 點 **Create Credentials** → **OAuth client ID**
+3. Application type 選 **Web application**
+4. 在 **Authorized JavaScript origins** 加入：
+   - `http://localhost:5173`
+   - `https://your-app.vercel.app`
+   - 若有自訂網域，也要一併加入
+5. 建立後會拿到一組 Client ID，例如：
+   - `1234567890-abcdefg.apps.googleusercontent.com`
+6. 將這個值填到：
+   - Render `GOOGLE_CLIENT_ID`
+   - Vercel `VITE_GOOGLE_CLIENT_ID`
+
+> 目前 Fenpai 已實作 Google SSO，且資料表設計已預留未來擴充 GitHub SSO。
 
 ### 設定 Resend API Key（寄送邀請信）
 
@@ -81,6 +102,7 @@ Render 會讀取 repo 根目錄的 `render.yaml` 自動建立所有服務。
    | Key | Value |
    |-----|-------|
    | `VITE_API_URL` | `https://fenpai-backend.onrender.com` |
+   | `VITE_GOOGLE_CLIENT_ID` | 與 Render `GOOGLE_CLIENT_ID` 相同的 Google OAuth Web Client ID |
 
    > Render backend URL 可在 Render Dashboard → `fenpai-backend` → **Settings** → **URL** 找到。
 
@@ -96,7 +118,9 @@ Render 會讀取 repo 根目錄的 `render.yaml` 自動建立所有服務。
 
 1. 取得 Vercel 部署完成的網址，例如 `https://fenpai.vercel.app`
 2. 回到 Render → `fenpai-backend` → **Environment**
-3. 將 `CORS_ORIGINS` 更新為正確的 Vercel URL
+3. 更新以下兩個值為正確的 Vercel URL：
+   - `CORS_ORIGINS`
+   - `FRONTEND_BASE_URL`
 4. **Save Changes**
 
 ---
@@ -115,6 +139,7 @@ Render 會讀取 repo 根目錄的 `render.yaml` 自動建立所有服務。
 | `JWT_SECRET` | 自動（`generateValue: true`）| JWT 簽章密鑰，Render 自動生成，無需手動填寫 |
 | `CORS_ORIGINS` | **手動填入** | Vercel 前端 URL，例如 `https://fenpai.vercel.app` |
 | `FRONTEND_BASE_URL` | **手動填入** | 同上，用於邀請信連結，例如 `https://fenpai.vercel.app` |
+| `GOOGLE_CLIENT_ID` | **手動填入** | Google OAuth Web Client ID，供後端驗證 Google ID token |
 | `RESEND_API_KEY` | **手動填入**（選填） | [Resend](https://resend.com) API Key（格式：`re_xxxxxxxxxx`），不設則邀請連結只印在後端 log，使用者收不到信 |
 
 ### Vercel（前端）
@@ -122,6 +147,7 @@ Render 會讀取 repo 根目錄的 `render.yaml` 自動建立所有服務。
 | 變數 | 值 | 說明 |
 |------|-----|------|
 | `VITE_API_URL` | **手動填入** | Render backend URL |
+| `VITE_GOOGLE_CLIENT_ID` | **手動填入** | 與 `GOOGLE_CLIENT_ID` 相同，供前端 Google Identity Services 初始化 |
 
 ---
 
@@ -144,6 +170,11 @@ Render 會讀取 repo 根目錄的 `render.yaml` 自動建立所有服務。
 
 **前端顯示空白或 API 無回應**
 → 確認 Vercel 的 `VITE_API_URL` 是 Render backend 的完整 URL（含 `https://`，無尾端斜線）。
+
+**Google 登入按鈕出現，但登入失敗或沒有反應**
+→ 確認 Vercel 已設定 `VITE_GOOGLE_CLIENT_ID`，Render 已設定 `GOOGLE_CLIENT_ID`，且兩者值相同。
+→ 確認 Google Cloud Console 的 **Authorized JavaScript origins** 已加入實際前端網址，且沒有多餘尾端斜線。
+→ 若剛改過 Vercel 網址或綁定自訂網域，記得同步更新 Google Cloud Console。
 
 **Render 建置失敗**
 → 檢查 Render build log。後端使用 Docker 建置（`eclipse-temurin:17-jre-jammy`），Java 版本已固定在 Dockerfile 中，無需額外設定。常見原因為 Maven 依賴下載失敗，重新觸發部署通常可解決。

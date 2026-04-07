@@ -6,9 +6,9 @@
 
 | 層次 | 技術 |
 |------|------|
-| 前端 | React 18 + Vite 6 + TailwindCSS 4 |
+| 前端 | React 19 + Vite 7 + TailwindCSS 4 |
 | PWA  | vite-plugin-pwa + Workbox |
-| 路由 | React Router v6 |
+| 路由 | React Router 7 |
 | 後端 | Spring Boot 3.2 + Java 17 |
 | 資料庫 | PostgreSQL 16（金額欄位皆使用 `NUMERIC(12,2)`） |
 | ORM  | Spring Data JPA + Hibernate |
@@ -75,7 +75,8 @@ fenpai/
 │   │   ├── application-prod.properties   # 正式環境（缺變數即啟動失敗）
 │   │   └── db/migration/
 │   │       ├── V1__init_schema.sql
-│   │       └── V2__add_group_invitations.sql
+│   │       ├── V2__add_group_invitations.sql
+│   │       └── V3__add_external_identities.sql
 │   └── Dockerfile
 ├── docs/
 │   └── deployment/
@@ -130,6 +131,33 @@ docker compose down -v
 
 ### 本機開發
 
+#### 0. 設定環境變數與 Google OAuth Client
+
+```bash
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+```
+
+- 根目錄 `.env` 至少填入：
+  - `JWT_SECRET`
+  - `GOOGLE_CLIENT_ID`
+- `frontend/.env` 至少填入：
+  - `VITE_GOOGLE_CLIENT_ID`
+
+`GOOGLE_CLIENT_ID` / `VITE_GOOGLE_CLIENT_ID` 通常是同一個值，都是 Google Cloud Console 建立的 Web OAuth Client ID。
+
+建立方式：
+1. 到 Google Cloud Console 建立或選擇專案
+2. 進入 **APIs & Services** → **Credentials**
+3. 建立 **OAuth client ID**
+4. 類型選 **Web application**
+5. 在 **Authorized JavaScript origins** 加入：
+   - `http://localhost:5173`
+   - 正式前端網址，例如 `https://your-app.vercel.app`
+6. 複製產生的 Client ID，填入 backend 與 frontend env
+
+> 目前專案已支援 Google SSO，資料模型也已預留未來擴充 GitHub SSO。
+
 #### 1. 啟動 PostgreSQL
 
 ```bash
@@ -167,6 +195,7 @@ npm run dev
 | `groups` | 分帳群組 |
 | `group_members` | 群組成員 |
 | `group_invitations` | 群組邀請（含 token、有效期、寄件對象） |
+| `external_identities` | 外部登入身份（Google，並預留 GitHub） |
 | `expenses` | 費用記錄 |
 | `expense_splits` | 費用分攤明細 |
 | `payments` | 付款記錄 |
@@ -181,6 +210,7 @@ npm run dev
 |------|------|------|--------|
 | POST | `/api/auth/register` | 註冊 | |
 | POST | `/api/auth/login` | 登入 | |
+| POST | `/api/auth/google` | 使用 Google 帳號登入或註冊 | |
 | POST | `/api/groups` | 建立群組 | ✓ |
 | GET  | `/api/groups` | 取得目前登入用戶的群組列表 | ✓ |
 | GET  | `/api/groups/{groupId}` | 取得群組詳情 | ✓ |
@@ -202,6 +232,12 @@ WebSocket 端點：`ws://localhost:8080/ws`（使用 SockJS + STOMP）
 - 邀請連結 7 天有效
 - 新用戶註冊時自動接受待處理的邀請
 - 需設定 `RESEND_API_KEY` 才會實際寄信；未設定時邀請連結印於後端 log
+
+### Google SSO
+- 支援用 Google 帳號直接登入或註冊
+- 後端驗證 Google ID token 後，仍由 Fenpai 簽發自己的 JWT
+- `users` 與 `external_identities` 分離設計，可擴充多個 SSO provider
+- 目前已實作 Google，schema 已預留 GitHub
 
 ### 催繳 QR Code（TWQR）
 - 符合台灣共通支付標準（TWQR）
@@ -236,6 +272,7 @@ WebSocket 端點：`ws://localhost:8080/ws`（使用 SockJS + STOMP）
 | `DB_PASSWORD` | ✓（prod） | 資料庫密碼 |
 | `CORS_ORIGINS` | ✓（prod） | 允許的前端來源，例如 `https://your-app.vercel.app` |
 | `FRONTEND_BASE_URL` | 選填 | 邀請信連結的前端網址，預設 `https://fenpai.onrender.com` |
+| `GOOGLE_CLIENT_ID` | Google SSO 時必填 | Google OAuth Web Client ID，用於驗證 ID token audience |
 | `RESEND_API_KEY` | 選填 | Resend API Key，未設定時跳過寄信 |
 
 Docker Compose 透過根目錄 `.env` 注入變數，詳見 [.env.example](.env.example)。
@@ -245,6 +282,18 @@ Docker Compose 透過根目錄 `.env` 注入變數，詳見 [.env.example](.env.
 | 變數 | 說明 |
 |------|------|
 | `VITE_API_URL` | 後端 API URL（本機開發不需設定，走 Vite proxy） |
+| `VITE_GOOGLE_CLIENT_ID` | Google OAuth Web Client ID，供 Google Identity Services 前端初始化 |
+
+### Google SSO 部署前檢查
+
+部署到正式環境前，請同步完成以下設定：
+
+1. Google Cloud Console 的 OAuth Client 已加入正式前端網域到 **Authorized JavaScript origins**
+2. Render 已設定 `GOOGLE_CLIENT_ID`
+3. Vercel 已設定 `VITE_GOOGLE_CLIENT_ID`
+4. `CORS_ORIGINS` 與 `FRONTEND_BASE_URL` 已更新成正式前端網址
+
+若前端網址之後改變，Google Cloud Console 的 Authorized JavaScript origins 也必須一起更新，否則 Google 登入按鈕會載入但無法正常完成登入。
 
 ---
 

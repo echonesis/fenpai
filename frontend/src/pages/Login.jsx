@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 
 export default function Login() {
   const { login } = useAuth();
@@ -21,10 +22,41 @@ export default function Login() {
         method: 'POST',
         body: JSON.stringify(form),
       });
-      login(data.token, { id: data.id, name: data.name, email: data.email });
+      login(data.token, {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        hasPassword: data.hasPassword,
+        providers: data.providers,
+      });
       navigate(redirect);
     } catch (err) {
-      setError(err.status === 401 ? '帳號或密碼錯誤' : '登入失敗，請稍後再試');
+      setError(
+        err.status === 401 ? '帳號或密碼錯誤' : err.message || '登入失敗，請稍後再試'
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGoogleLogin(credential) {
+    setError('');
+    setLoading(true);
+    try {
+      const data = await apiFetch('/api/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ credential }),
+      });
+      login(data.token, {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        hasPassword: data.hasPassword,
+        providers: data.providers,
+      });
+      navigate(redirect);
+    } catch (err) {
+      setError(err.message || 'Google 登入失敗，請稍後再試');
     } finally {
       setLoading(false);
     }
@@ -71,6 +103,19 @@ export default function Login() {
             {loading ? '登入中...' : '登入'}
           </button>
         </form>
+
+        <div className="my-5 flex items-center gap-3 text-xs text-slate-400">
+          <div className="h-px flex-1 bg-slate-200" />
+          <span>或</span>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+
+        <GoogleSignInButton
+          disabled={loading}
+          onCredential={handleGoogleLogin}
+          onError={() => setError('Google 登入初始化失敗')}
+          text="signin_with"
+        />
 
         <p className="text-center text-sm text-slate-500 mt-5">
           還沒有帳號？{' '}

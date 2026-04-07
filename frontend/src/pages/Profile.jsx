@@ -79,6 +79,13 @@ export default function Profile() {
         <div>
           <p className="font-semibold text-slate-700">{auth.user.name}</p>
           <p className="text-sm text-slate-400">{auth.user.email}</p>
+          <p className="text-xs text-slate-400 mt-1">
+            登入方式：
+            {[
+              ...(auth.user.hasPassword ? ['PASSWORD'] : []),
+              ...((auth.user.providers ?? []).filter(Boolean)),
+            ].join(' / ') || '未知'}
+          </p>
         </div>
       </div>
 
@@ -151,57 +158,65 @@ export default function Profile() {
         )}
 
         {/* Change password */}
-        <button
-          onClick={() => { setShowChangePwd(v => !v); setPwdMsg(null); }}
-          className="w-full px-5 py-4 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-between"
-        >
-          修改密碼
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-            strokeWidth={2} stroke="currentColor"
-            className={`w-4 h-4 text-slate-300 transition-transform ${showChangePwd ? 'rotate-90' : ''}`}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-          </svg>
-        </button>
+        {auth.user.hasPassword ? (
+          <>
+            <button
+              onClick={() => { setShowChangePwd(v => !v); setPwdMsg(null); }}
+              className="w-full px-5 py-4 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-between"
+            >
+              修改密碼
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                strokeWidth={2} stroke="currentColor"
+                className={`w-4 h-4 text-slate-300 transition-transform ${showChangePwd ? 'rotate-90' : ''}`}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
 
-        {showChangePwd && (
-          <form onSubmit={handleChangePwd} className="px-5 py-4">
-            <input
-              type="password"
-              value={currentPwd}
-              onChange={e => setCurrentPwd(e.target.value)}
-              placeholder="目前密碼"
-              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-2"
-              autoFocus
-            />
-            <input
-              type="password"
-              value={newPwd}
-              onChange={e => setNewPwd(e.target.value)}
-              placeholder="新密碼"
-              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-3"
-            />
-            {pwdMsg && (
-              <p className={`text-xs mb-3 ${pwdMsg.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
-                {pwdMsg.text}
-              </p>
+            {showChangePwd && (
+              <form onSubmit={handleChangePwd} className="px-5 py-4">
+                <input
+                  type="password"
+                  value={currentPwd}
+                  onChange={e => setCurrentPwd(e.target.value)}
+                  placeholder="目前密碼"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-2"
+                  autoFocus
+                />
+                <input
+                  type="password"
+                  value={newPwd}
+                  onChange={e => setNewPwd(e.target.value)}
+                  placeholder="新密碼"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-3"
+                />
+                {pwdMsg && (
+                  <p className={`text-xs mb-3 ${pwdMsg.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                    {pwdMsg.text}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={savingPwd || !currentPwd || !newPwd}
+                    className="flex-1 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white text-sm py-2 rounded-xl transition"
+                  >
+                    {savingPwd ? '更新中…' : '更新密碼'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowChangePwd(false)}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm py-2 rounded-xl transition"
+                  >
+                    取消
+                  </button>
+                </div>
+              </form>
             )}
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={savingPwd || !currentPwd || !newPwd}
-                className="flex-1 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white text-sm py-2 rounded-xl transition"
-              >
-                {savingPwd ? '更新中…' : '更新密碼'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowChangePwd(false)}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm py-2 rounded-xl transition"
-              >
-                取消
-              </button>
-            </div>
-          </form>
+          </>
+        ) : (
+          <div className="px-5 py-4 text-sm text-slate-500 border-t border-slate-50">
+            這個帳號目前使用社群登入，尚未設定本地密碼。
+          </div>
         )}
       </div>
 
