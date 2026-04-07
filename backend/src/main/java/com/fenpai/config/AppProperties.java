@@ -8,10 +8,12 @@ public class AppProperties {
     private final Jwt jwt = new Jwt();
     private final Cors cors = new Cors();
     private final Frontend frontend = new Frontend();
+    private final Auth auth = new Auth();
 
     public Jwt getJwt() { return jwt; }
     public Cors getCors() { return cors; }
     public Frontend getFrontend() { return frontend; }
+    public Auth getAuth() { return auth; }
 
     public static class Jwt {
         private String secret;
@@ -35,5 +37,18 @@ public class AppProperties {
 
         public String getBaseUrl() { return baseUrl; }
         public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
+    }
+
+    public static class Auth {
+        private final Google google = new Google();
+
+        public Google getGoogle() { return google; }
+    }
+
+    public static class Google {
+        private String clientId;
+
+        public String getClientId() { return clientId; }
+        public void setClientId(String clientId) { this.clientId = clientId; }
     }
 }

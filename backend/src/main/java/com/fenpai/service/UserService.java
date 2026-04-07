@@ -1,6 +1,7 @@
 package com.fenpai.service;
 
 import com.fenpai.model.User;
+import com.fenpai.repository.ExternalIdentityRepository;
 import com.fenpai.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.*;
@@ -13,7 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final ExternalIdentityRepository externalIdentityRepository;
     private final PasswordEncoder passwordEncoder;
+
+    private static final String SOCIAL_LOGIN_PLACEHOLDER_HASH = "$2a$10$7EqJtq98hPqEX7fNZaFWoOHi9nS6YQkQnQ0imeISFRCGDpa2BkLom";
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -21,7 +25,7 @@ public class UserService implements UserDetailsService {
             .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
         return org.springframework.security.core.userdetails.User.builder()
             .username(user.getEmail())
-            .password(user.getPasswordHash())
+            .password(user.hasPassword() ? user.getPasswordHash() : SOCIAL_LOGIN_PLACEHOLDER_HASH)
             .roles("USER")
             .build();
     }
@@ -37,6 +41,13 @@ public class UserService implements UserDetailsService {
             .passwordHash(passwordEncoder.encode(password))
             .build();
         return userRepository.save(user);
+    }
+
+    public void ensurePasswordLoginAllowed(String email) {
+        User user = findByEmail(email);
+        if (!user.hasPassword()) {
+            throw new IllegalArgumentException("This account uses social login. Sign in with Google instead.");
+        }
     }
 
     public User findById(Long id) {
@@ -58,6 +69,9 @@ public class UserService implements UserDetailsService {
         }
 
         if (newPassword != null && !newPassword.isBlank()) {
+            if (!user.hasPassword()) {
+                throw new IllegalArgumentException("This account does not have a password yet");
+            }
             if (currentPassword == null || currentPassword.isBlank()) {
                 throw new IllegalArgumentException("Current password is required to change password");
             }
@@ -68,5 +82,17 @@ public class UserService implements UserDetailsService {
         }
 
         return userRepository.save(user);
+    }
+
+    public boolean hasPassword(User user) {
+        return user.hasPassword();
+    }
+
+    public java.util.List<String> getProviderNames(User user) {
+        return externalIdentityRepository.findByUserId(user.getId()).stream()
+            .map(identity -> identity.getProvider().name())
+            .distinct()
+            .sorted()
+            .toList();
     }
 }

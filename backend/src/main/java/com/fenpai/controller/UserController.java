@@ -21,14 +21,22 @@ public class UserController {
         String password
     ) {}
 
-    record UserResponse(Long id, String name, String email) {
-        static UserResponse from(User u) { return new UserResponse(u.getId(), u.getName(), u.getEmail()); }
+    record UserResponse(Long id, String name, String email, boolean hasPassword, java.util.List<String> providers) {
+        static UserResponse from(User u, UserService userService) {
+            return new UserResponse(
+                u.getId(),
+                u.getName(),
+                u.getEmail(),
+                userService.hasPassword(u),
+                userService.getProviderNames(u)
+            );
+        }
     }
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getMe(Principal principal) {
         User user = userService.findByEmail(principal.getName());
-        return ResponseEntity.ok(UserResponse.from(user));
+        return ResponseEntity.ok(UserResponse.from(user, userService));
     }
 
     @PutMapping("/me")
@@ -41,6 +49,6 @@ public class UserController {
             req.currentPassword(),
             req.password()
         );
-        return ResponseEntity.ok(UserResponse.from(user));
+        return ResponseEntity.ok(UserResponse.from(user, userService));
     }
 }
