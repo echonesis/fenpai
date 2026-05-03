@@ -49,6 +49,7 @@ Zeabur Project: fenpai
    | `RESEND_API_KEY` | [Resend](https://resend.com) API Key（選填，格式：`re_xxxxxxxxxx`），不設則邀請連結只印在後端 log |
 
 5. **Deploy**，等待建置完成
+6. 進入服務的 **Networking** 頁 → **Public** → **Generate Domain**，取得後端公網 URL（如 `https://fenpai-backend.zeabur.app`）
 
 ---
 
@@ -64,6 +65,7 @@ Zeabur Project: fenpai
    | `VITE_API_URL` | Zeabur backend 服務的 URL（如 `https://fenpai-backend.zeabur.app`） |
 
 5. **Deploy**
+6. 進入服務的 **Networking** 頁 → **Public** → **Generate Domain**，取得前端公網 URL（如 `https://fenpai-frontend.zeabur.app`）
 
 ---
 
