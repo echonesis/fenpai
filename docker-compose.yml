@@ -29,11 +29,11 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: fenpai
-      DB_USER: fenpai
-      DB_PASSWORD: fenpai
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: fenpai
+      POSTGRES_USERNAME: fenpai
+      POSTGRES_PASSWORD: fenpai
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:5173}

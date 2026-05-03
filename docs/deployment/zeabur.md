@@ -42,9 +42,10 @@ Zeabur Project: fenpai
 
    | Key | Value |
    |-----|-------|
+   | `SPRING_PROFILES_ACTIVE` | `prod` |
    | `JWT_SECRET` | 本地執行 `openssl rand -hex 64` 後貼入 |
-   | `CORS_ORIGINS` | 待前端部署完成後填入 Zeabur frontend URL |
-   | `FRONTEND_BASE_URL` | 同上，用於邀請信連結（待前端部署後填入） |
+   | `CORS_ORIGINS` | 暫填 `http://localhost:5173`，前端部署後再更新 |
+   | `FRONTEND_BASE_URL` | 同上 |
    | `RESEND_API_KEY` | [Resend](https://resend.com) API Key（選填，格式：`re_xxxxxxxxxx`），不設則邀請連結只印在後端 log |
 
 5. **Deploy**，等待建置完成
@@ -102,11 +103,12 @@ Zeabur Project: fenpai
 
 | 變數 | 來源 | 說明 |
 |------|------|------|
-| `DB_HOST` | 從 PostgreSQL 服務注入 | |
-| `DB_PORT` | 從 PostgreSQL 服務注入 | |
-| `DB_NAME` | 從 PostgreSQL 服務注入 | |
-| `DB_USER` | 從 PostgreSQL 服務注入 | |
-| `DB_PASSWORD` | 從 PostgreSQL 服務注入 | |
+| `POSTGRES_HOST` | Zeabur 自動注入 | |
+| `POSTGRES_PORT` | Zeabur 自動注入 | |
+| `POSTGRES_DATABASE` | Zeabur 自動注入 | |
+| `POSTGRES_USERNAME` | Zeabur 自動注入 | |
+| `POSTGRES_PASSWORD` | Zeabur 自動注入 | |
+| `SPRING_PROFILES_ACTIVE` | **手動填入** | 固定填 `prod` |
 | `JWT_SECRET` | **手動填入** | 隨機長字串 |
 | `CORS_ORIGINS` | **手動填入** | Zeabur frontend URL |
 | `FRONTEND_BASE_URL` | **手動填入** | 同上，用於邀請信連結 |
