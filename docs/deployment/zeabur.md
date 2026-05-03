@@ -46,6 +46,7 @@ Zeabur Project: fenpai
    | `JWT_SECRET` | 本地執行 `openssl rand -hex 64` 後貼入 |
    | `CORS_ORIGINS` | 暫填 `http://localhost:5173`，前端部署後再更新 |
    | `FRONTEND_BASE_URL` | 同上 |
+   | `GOOGLE_CLIENT_ID` | Google OAuth Web Client ID（選填，不設則 Google 登入按鈕不會出現） |
    | `RESEND_API_KEY` | [Resend](https://resend.com) API Key（選填，格式：`re_xxxxxxxxxx`），不設則邀請連結只印在後端 log |
 
 5. **Deploy**，等待建置完成
@@ -63,6 +64,7 @@ Zeabur Project: fenpai
    | Key | Value |
    |-----|-------|
    | `VITE_API_URL` | Zeabur backend 服務的 URL（如 `https://fenpai-backend.zeabur.app`） |
+   | `VITE_GOOGLE_CLIENT_ID` | Google OAuth Web Client ID（選填，不設則 Google 登入按鈕不會出現） |
 
 5. **Deploy**
 6. 進入服務的 **Networking** 頁 → **Public** → **Generate Domain**，取得前端公網 URL（如 `https://fenpai-frontend.zeabur.app`）
@@ -81,6 +83,19 @@ Zeabur Project: fenpai
    | `FRONTEND_BASE_URL` | `https://fenpai-frontend.zeabur.app` |
 
 4. 重新部署後端
+
+### 設定 Google SSO（選填）
+
+若要讓使用者能用 Google 帳號登入，需在 Google Cloud Console 建立 OAuth Web Client。
+
+1. 進入 Google Cloud Console → **APIs & Services** → **Credentials**
+2. 點 **Create Credentials** → **OAuth client ID**
+3. Application type 選 **Web application**
+4. 在 **Authorized JavaScript origins** 加入前端公網 URL（如 `https://fenpai-frontend.zeabur.app`）
+5. 建立後取得 Client ID
+6. 填入後端 Variables：`GOOGLE_CLIENT_ID`
+7. 填入前端 Variables：`VITE_GOOGLE_CLIENT_ID`（值相同）
+8. 重新部署前後端（前端需重新 build 才能將值注入 JavaScript）
 
 ### 設定 Resend API Key（寄送邀請信）
 
@@ -114,6 +129,7 @@ Zeabur Project: fenpai
 | `JWT_SECRET` | **手動填入** | 隨機長字串 |
 | `CORS_ORIGINS` | **手動填入** | Zeabur frontend URL |
 | `FRONTEND_BASE_URL` | **手動填入** | 同上，用於邀請信連結 |
+| `GOOGLE_CLIENT_ID` | **手動填入**（選填） | Google OAuth Web Client ID，不設則 Google 登入按鈕不會出現 |
 | `RESEND_API_KEY` | **手動填入**（選填） | Resend API Key（格式：`re_xxxxxxxxxx`），不設則邀請連結只印在後端 log |
 
 ### 前端
@@ -121,6 +137,7 @@ Zeabur Project: fenpai
 | 變數 | 說明 |
 |------|------|
 | `VITE_API_URL` | Zeabur backend URL（含 `https://`，無尾端 `/`） |
+| `VITE_GOOGLE_CLIENT_ID` | 與 `GOOGLE_CLIENT_ID` 相同，供前端 Google Identity Services 初始化（選填） |
 
 ---
 
