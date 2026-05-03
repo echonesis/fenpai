@@ -38,13 +38,10 @@ Zeabur Project: fenpai
 3. 設定 **Root Directory** 為 `backend`
 4. 進入服務的 **Variables** 頁，新增以下環境變數：
 
+   > PostgreSQL 連線資訊（`POSTGRES_HOST` / `POSTGRES_PORT` / `POSTGRES_DATABASE` / `POSTGRES_USERNAME` / `POSTGRES_PASSWORD`）由 Zeabur 在同一個 Project 內**自動注入**，不需要手動設定。
+
    | Key | Value |
    |-----|-------|
-   | `DB_HOST` | 點選「從其他服務注入」→ 選 PostgreSQL → `host` |
-   | `DB_PORT` | 同上 → `port` |
-   | `DB_NAME` | 同上 → `database` |
-   | `DB_USER` | 同上 → `user` |
-   | `DB_PASSWORD` | 同上 → `password` |
    | `JWT_SECRET` | 本地執行 `openssl rand -hex 64` 後貼入 |
    | `CORS_ORIGINS` | 待前端部署完成後填入 Zeabur frontend URL |
    | `FRONTEND_BASE_URL` | 同上，用於邀請信連結（待前端部署後填入） |
