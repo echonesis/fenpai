@@ -117,9 +117,10 @@ public class BalanceService {
     }
 
     @Transactional
-    public void settle(Long groupId, Long fromUserId, Long toUserId, BigDecimal amount) {
-        Group group = groupRepository.findById(groupId)
-            .orElseThrow(() -> new IllegalArgumentException("Group not found"));
+    public void settle(Long groupId, Long fromUserId, Long toUserId, BigDecimal amount, String note) {
+        Group group = groupId != null
+            ? groupRepository.findById(groupId).orElseThrow(() -> new IllegalArgumentException("Group not found"))
+            : null;
         User fromUser = userRepository.findById(fromUserId)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
         User toUser = userRepository.findById(toUserId)
@@ -130,6 +131,7 @@ public class BalanceService {
             .fromUser(fromUser)
             .toUser(toUser)
             .amount(amount)
+            .note(note)
             .build());
     }
 }

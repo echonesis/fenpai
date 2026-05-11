@@ -4,16 +4,25 @@ import { apiFetch } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
 async function fetchAllExpenses() {
-  const groups = await apiFetch('/api/groups');
-  if (groups.length === 0) return [];
-  const results = await Promise.all(
-    groups.map(g =>
-      apiFetch(`/api/expenses/group/${g.id}`)
-        .then(exps => exps.map(e => ({ ...e, groupName: g.name })))
-        .catch(() => [])
-    )
-  );
-  return results.flat().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const [groups, direct] = await Promise.all([
+    apiFetch('/api/groups'),
+    apiFetch('/api/expenses/direct').catch(() => []),
+  ]);
+
+  const groupExpenses = groups.length > 0
+    ? await Promise.all(
+        groups.map(g =>
+          apiFetch(`/api/expenses/group/${g.id}`)
+            .then(exps => exps.map(e => ({ ...e, groupName: g.name })))
+            .catch(() => [])
+        )
+      ).then(r => r.flat())
+    : [];
+
+  const directExpenses = direct.map(e => ({ ...e, groupName: '直接支出' }));
+
+  return [...groupExpenses, ...directExpenses]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
 function formatDate(iso) {
@@ -87,7 +96,11 @@ export default function Records() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-700 truncate">{exp.description}</p>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <span className="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        exp.groupName === '直接支出'
+                          ? 'bg-purple-50 text-purple-500'
+                          : 'bg-slate-50 text-slate-400'
+                      }`}>
                         {exp.groupName}
                       </span>
                       <span className="text-xs text-slate-400">

@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -35,6 +33,7 @@ services:
       POSTGRES_USERNAME: fenpai
       POSTGRES_PASSWORD: fenpai
       JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:5173}
     depends_on:

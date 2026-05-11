@@ -19,4 +19,18 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     @Query("SELECT DISTINCT e FROM Expense e JOIN FETCH e.group JOIN FETCH e.paidBy LEFT JOIN FETCH e.splits s LEFT JOIN FETCH s.user WHERE e.id = :id")
     Optional<Expense> findByIdWithSplits(@Param("id") Long id);
+
+    @Query("""
+        SELECT DISTINCT e FROM Expense e JOIN FETCH e.paidBy LEFT JOIN FETCH e.splits s LEFT JOIN FETCH s.user
+        WHERE e.group IS NULL AND (e.paidBy.id = :userId OR s.user.id = :userId)
+        ORDER BY e.createdAt DESC
+        """)
+    List<Expense> findDirectExpensesByUserId(@Param("userId") Long userId);
+
+    @Query("""
+        SELECT DISTINCT e FROM Expense e JOIN FETCH e.paidBy LEFT JOIN FETCH e.splits s LEFT JOIN FETCH s.user
+        WHERE (e.paidBy.id = :a AND s.user.id = :b) OR (e.paidBy.id = :b AND s.user.id = :a)
+        ORDER BY e.createdAt DESC
+        """)
+    List<Expense> findExpensesBetweenUsers(@Param("a") Long a, @Param("b") Long b);
 }

@@ -29,6 +29,10 @@ export default function GroupDetail() {
   // Kick state
   const [kickingUserId, setKickingUserId] = useState(null);
 
+  // Friends quick-add
+  const [friends, setFriends] = useState([]);
+  const [invitingFriendId, setInvitingFriendId] = useState(null);
+
   useEffect(() => {
     Promise.all([
       apiFetch(`/api/groups/${groupId}`),
@@ -36,10 +40,16 @@ export default function GroupDetail() {
       apiFetch(`/api/balances/group/${groupId}`).catch(() => null),
       apiFetch(`/api/balances/group/${groupId}/history`).catch(() => []),
     ])
-      .then(([g, m, b, h]) => { setGroup(g); setMembers(m); setBalances(b); setHistory(h); })
+      .then(([g, m, b, h]) => {
+        setGroup(g); setMembers(m); setBalances(b); setHistory(h);
+      })
       .catch(err => setLoadError(err.message))
       .finally(() => setLoading(false));
   }, [groupId]);
+
+  useEffect(() => {
+    apiFetch('/api/friends').then(setFriends).catch(() => {});
+  }, []);
 
   const isCreator = group && Number(auth.user.id) === Number(group.createdById);
 
@@ -110,6 +120,28 @@ export default function GroupDetail() {
       alert('移除失敗：' + err.message);
     } finally {
       setKickingUserId(null);
+    }
+  }
+
+  async function handleInviteFriend(friend) {
+    setInvitingFriendId(friend.friendId);
+    setInviteMsg(null);
+    try {
+      const { result } = await apiFetch(`/api/groups/${groupId}/invite`, {
+        method: 'POST',
+        body: JSON.stringify({ email: friend.email }),
+      });
+      if (result === 'added') {
+        const updated = await apiFetch(`/api/groups/${groupId}/members`);
+        setMembers(updated);
+        setInviteMsg({ type: 'success', text: `${friend.name} 已加入群組。` });
+      } else {
+        setInviteMsg({ type: 'warning', text: `${friend.name} 尚未註冊，已寄出邀請信。` });
+      }
+    } catch (err) {
+      setInviteMsg({ type: 'error', text: err.message });
+    } finally {
+      setInvitingFriendId(null);
     }
   }
 
@@ -323,6 +355,32 @@ export default function GroupDetail() {
       {/* Invite */}
       <section className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm mb-4">
         <p className="text-sm font-medium text-slate-500 mb-3">邀請成員</p>
+
+        {/* Friends quick-add */}
+        {friends.filter(f => !members.some(m => m.id === f.friendId)).length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs text-slate-400 mb-2">從朋友列表選擇</p>
+            <div className="flex flex-wrap gap-2">
+              {friends
+                .filter(f => !members.some(m => m.id === f.friendId))
+                .map(f => (
+                  <button
+                    key={f.friendId}
+                    type="button"
+                    onClick={() => handleInviteFriend(f)}
+                    disabled={!!invitingFriendId}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 text-sm font-medium disabled:opacity-50 active:scale-95 transition-transform"
+                  >
+                    <span className="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center text-xs font-bold">
+                      {f.name.charAt(0)}
+                    </span>
+                    {invitingFriendId === f.friendId ? '…' : f.name}
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleInvite} className="flex gap-2">
           <input
             type="email"

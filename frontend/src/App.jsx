@@ -4,7 +4,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './components/AppLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import Friends from './pages/Friends';
+import FriendDetail from './pages/FriendDetail';
 import Groups from './pages/Groups';
 import Records from './pages/Records';
 import Profile from './pages/Profile';
@@ -28,7 +29,9 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+          <Route path="/" element={<Navigate to="/friends" replace />} />
+          <Route path="/friends" element={<ProtectedLayout><Friends /></ProtectedLayout>} />
+          <Route path="/friends/:friendId" element={<ProtectedLayout><FriendDetail /></ProtectedLayout>} />
           <Route path="/groups" element={<ProtectedLayout><Groups /></ProtectedLayout>} />
           <Route path="/add-expense" element={<ProtectedLayout><AddExpense /></ProtectedLayout>} />
           <Route path="/records" element={<ProtectedLayout><Records /></ProtectedLayout>} />

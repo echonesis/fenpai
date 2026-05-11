@@ -25,10 +25,16 @@ public class ExpenseService {
     public Expense createExpense(Long groupId, Long paidByUserId, String description,
                                   BigDecimal amount, String splitType,
                                   Map<Long, BigDecimal> customSplits) {
-        Group group = groupRepository.findById(groupId)
-            .orElseThrow(() -> new IllegalArgumentException("Group not found"));
+        Group group = groupId != null
+            ? groupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found"))
+            : null;
         User paidBy = userRepository.findById(paidByUserId)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (group == null && !"CUSTOM".equals(splitType)) {
+            throw new IllegalArgumentException("Direct expenses must use CUSTOM split type");
+        }
 
         Expense expense = Expense.builder()
             .group(group)
@@ -40,7 +46,7 @@ public class ExpenseService {
         expense = expenseRepository.save(expense);
 
         List<ExpenseSplit> splits = new ArrayList<>();
-        if ("EQUAL".equals(splitType)) {
+        if ("EQUAL".equals(splitType) && group != null) {
             List<GroupMember> members = groupMemberRepository.findByGroupId(groupId);
             BigDecimal splitAmount = amount.divide(
                 BigDecimal.valueOf(members.size()), 2, RoundingMode.HALF_UP);
@@ -70,6 +76,10 @@ public class ExpenseService {
         return expenseRepository.findByGroupIdOrderByCreatedAtDesc(groupId);
     }
 
+    public List<Expense> getDirectExpenses(Long userId) {
+        return expenseRepository.findDirectExpensesByUserId(userId);
+    }
+
     public Expense getExpenseWithSplits(Long expenseId) {
         return expenseRepository.findByIdWithSplits(expenseId)
             .orElseThrow(() -> new IllegalArgumentException("Expense not found"));
@@ -94,9 +104,12 @@ public class ExpenseService {
 
         expenseSplitRepository.deleteAllByExpenseId(expenseId);
 
-        Long groupId = expense.getGroup().getId();
+        Long groupId = expense.getGroup() != null ? expense.getGroup().getId() : null;
+        if (groupId == null && !"CUSTOM".equals(splitType)) {
+            throw new IllegalArgumentException("Direct expenses must use CUSTOM split type");
+        }
         List<ExpenseSplit> splits = new ArrayList<>();
-        if ("EQUAL".equals(splitType)) {
+        if ("EQUAL".equals(splitType) && groupId != null) {
             List<GroupMember> members = groupMemberRepository.findByGroupId(groupId);
             BigDecimal splitAmount = amount.divide(
                 BigDecimal.valueOf(members.size()), 2, RoundingMode.HALF_UP);

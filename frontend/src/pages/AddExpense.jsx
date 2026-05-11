@@ -9,14 +9,18 @@ export default function AddExpense() {
   const { auth } = useAuth();
 
   const presetGroupId = searchParams.get('groupId');
+  const friendId = searchParams.get('friendId');
   const expenseId = searchParams.get('expenseId');
   const isEditMode = !!expenseId;
+  const isDirectMode = !!friendId && !isEditMode;
 
   const [groups, setGroups] = useState([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [members, setMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
+
+  const [friend, setFriend] = useState(null);
 
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -72,9 +76,26 @@ export default function AddExpense() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenseId]);
 
+  // Direct mode: load friend info and set up 2-person members
+  useEffect(() => {
+    if (!isDirectMode) return;
+    apiFetch('/api/friends').then(friends => {
+      const f = friends.find(f => String(f.friendId) === String(friendId));
+      if (!f) { navigate('/friends'); return; }
+      setFriend(f);
+      const me = { id: auth.user.id, name: '我' };
+      const friendMember = { id: f.friendId, name: f.name };
+      setMembers([me, friendMember]);
+      setPaidBy(auth.user.id);
+      setSplitType('EQUAL');
+      setCustomSplits({ [auth.user.id]: '', [f.friendId]: '' });
+    }).catch(() => navigate('/friends'));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [friendId]);
+
   // Fetch groups list when no presetGroupId and not edit mode
   useEffect(() => {
-    if (presetGroupId || isEditMode) return;
+    if (presetGroupId || isEditMode || isDirectMode) return;
     setLoadingGroups(true);
     apiFetch('/api/groups')
       .then(setGroups)
@@ -84,7 +105,7 @@ export default function AddExpense() {
 
   // Fetch group info + members from URL param (runs once on mount)
   useEffect(() => {
-    if (presetGroupId && !isEditMode) fetchGroupAndMembers(presetGroupId);
+    if (presetGroupId && !isEditMode && !isDirectMode) fetchGroupAndMembers(presetGroupId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presetGroupId]);
 
@@ -111,8 +132,25 @@ export default function AddExpense() {
       return;
     }
 
+    let finalSplitType = splitType;
     let splits = null;
-    if (splitType === 'CUSTOM') {
+
+    if (isDirectMode) {
+      // Direct expenses always use CUSTOM; EQUAL becomes 50/50
+      finalSplitType = 'CUSTOM';
+      const half = parseFloat((amt / 2).toFixed(2));
+      const other = parseFloat((amt - half).toFixed(2));
+      splits = { [auth.user.id]: half, [friend.friendId]: other };
+      if (splitType === 'CUSTOM') {
+        const total = Object.values(customSplits).reduce((sum, v) => sum + (parseFloat(v) || 0), 0);
+        if (Math.abs(total - amt) > 0.01) {
+          setMessage({ type: 'error', text: `自訂分帳加總（${total.toFixed(2)}）不等於總金額（${amt.toFixed(2)}）。` });
+          return;
+        }
+        splits = {};
+        Object.entries(customSplits).forEach(([uid, v]) => { splits[uid] = parseFloat(v) || 0; });
+      }
+    } else if (splitType === 'CUSTOM') {
       const total = Object.values(customSplits).reduce((sum, v) => sum + (parseFloat(v) || 0), 0);
       if (Math.abs(total - amt) > 0.01) {
         setMessage({ type: 'error', text: `自訂分帳加總（${total.toFixed(2)}）不等於總金額（${amt.toFixed(2)}）。` });
@@ -135,7 +173,7 @@ export default function AddExpense() {
             paidByUserId: paidBy,
             description: desc,
             amount: amt,
-            splitType,
+            splitType: finalSplitType,
             customSplits: splits,
           }),
         });
@@ -143,16 +181,16 @@ export default function AddExpense() {
         await apiFetch('/api/expenses', {
           method: 'POST',
           body: JSON.stringify({
-            groupId: selectedGroup.id,
+            groupId: isDirectMode ? null : selectedGroup.id,
             paidByUserId: paidBy,
             description: desc,
             amount: amt,
-            splitType,
+            splitType: finalSplitType,
             customSplits: splits,
           }),
         });
       }
-      navigate('/records');
+      navigate(isDirectMode ? `/friends/${friendId}` : '/records');
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
     } finally {
@@ -160,7 +198,7 @@ export default function AddExpense() {
     }
   }
 
-  const showForm = selectedGroup && !loadingMembers && members.length > 0;
+  const showForm = (isDirectMode ? !!friend : !!selectedGroup) && !loadingMembers && members.length > 0;
   const amtNum = parseFloat(amount) || 0;
   const customTotal = Object.values(customSplits).reduce((sum, v) => sum + (parseFloat(v) || 0), 0);
 
@@ -212,9 +250,12 @@ export default function AddExpense() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-slate-500">
-              群組：<span className="font-medium text-slate-700">{selectedGroup.name}</span>
+              {isDirectMode
+                ? <>與 <span className="font-medium text-slate-700">{friend.name}</span> 的直接支出</>
+                : <>群組：<span className="font-medium text-slate-700">{selectedGroup.name}</span></>
+              }
             </p>
-            {!presetGroupId && !isEditMode && (
+            {!presetGroupId && !isEditMode && !isDirectMode && (
               <button
                 type="button"
                 onClick={() => { setSelectedGroup(null); setMembers([]); setMessage(null); }}

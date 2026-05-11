@@ -3,6 +3,7 @@ package com.fenpai.controller;
 import com.fenpai.model.Expense;
 import com.fenpai.model.ExpenseSplit;
 import com.fenpai.service.ExpenseService;
+import com.fenpai.service.GroupService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,9 +23,10 @@ import java.util.Map;
 public class ExpenseController {
 
     private final ExpenseService expenseService;
+    private final GroupService groupService;
 
     record CreateExpenseRequest(
-        @NotNull Long groupId,
+        Long groupId,
         @NotNull Long paidByUserId,
         @NotBlank String description,
         @NotNull @Positive BigDecimal amount,
@@ -52,6 +54,12 @@ public class ExpenseController {
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<Expense>> getExpensesByGroup(@PathVariable Long groupId) {
         return ResponseEntity.ok(expenseService.getExpensesByGroup(groupId));
+    }
+
+    @GetMapping("/direct")
+    public ResponseEntity<List<Expense>> getDirectExpenses(Principal principal) {
+        Long userId = groupService.getUserByEmail(principal.getName()).getId();
+        return ResponseEntity.ok(expenseService.getDirectExpenses(userId));
     }
 
     @GetMapping("/{expenseId}")

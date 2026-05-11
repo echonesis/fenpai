@@ -33,6 +33,12 @@ public class UserController {
         }
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<UserResponse> searchByEmail(@RequestParam String email, Principal principal) {
+        User found = userService.findByEmail(email);
+        return ResponseEntity.ok(UserResponse.from(found, userService));
+    }
+
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getMe(Principal principal) {
         User user = userService.findByEmail(principal.getName());
